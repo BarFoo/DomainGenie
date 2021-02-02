@@ -1,0 +1,57 @@
+{
+  "name": "domain-genie",
+  "author": {
+    "name": "BarFoo",
+    "url": "https://github.com/barfoo/DomainGenie/"
+  },
+  "description": "Free and open source cross platform desktop app for domain portfolio management",
+  "version": "0.1.0",
+  "main": "main.js",
+  "scripts": {
+    "build": "electron-snowpack build",
+    "clean": "electron-snowpack clean",
+    "dev": "electron-snowpack dev",
+    "dist": "electron-builder"
+  },
+  "build": {
+    "extends": "electron-snowpack/config/electron-builder.js",
+    "appId": "com.domaingenie.app",
+    "productName": "Domain Genie"
+  },
+  "devDependencies": {
+    "@snowpack/plugin-postcss": "^1.1.0",
+    "@snowpack/plugin-svelte": "^3.5.2",
+    "@snowpack/web-test-runner-plugin": "^0.1.4",
+    "@testing-library/jest-dom": "^5.11.4",
+    "@testing-library/svelte": "^3.0.0",
+    "@web/test-runner": "^0.10.0",
+    "autoprefixer": "^10.2.4",
+    "chai": "^4.2.0",
+    "electron": "11.2.1",
+    "electron-builder": "^22.9.1",
+    "husky": "^4.2.5",
+    "jest": "^26.4.2",
+    "lint-staged": "^10.2.13",
+    "postcss": "^8.2.4",
+    "postcss-cli": "^8.3.1",
+    "postcss-load-config": "^3.0.0",
+    "snowpack": "^3.0.11",
+    "svelte": "^3.32.1",
+    "svelte-preprocess": "^4.6.5",
+    "tailwindcss": "^2.0.2",
+    "wait-on": "^5.2.1"
+  },
+  "dependencies": {
+    "axios": "^0.21.1",
+    "crypto-random-string": "^3.3.0",
+    "dayjs": "^1.10.4",
+    "electron-debug": "^3.2.0",
+    "electron-serve": "^1.1.0",
+    "electron-snowpack": "^0.3.1",
+    "electron-store": "^7.0.0",
+    "pouchdb-browser": "^7.2.2",
+    "pouchdb-find": "^7.2.2",
+    "qs": "^6.9.6",
+    "svelte-spa-router": "^3.1.0"
+  }
+}
