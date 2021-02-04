@@ -1,90 +1,113 @@
-<script>
-  import TextField from "../common/TextField.svelte";
-  import Button from "../common/Button.svelte";
-  import Modal from "../common/Modal.svelte";
-  import Alert from "../common/Alert.svelte";
+<script lang="ts">  
+  import { _ } from "svelte-i18n";
+  import { registrarService, fileStoreService } from "../stores";
+  import type { RegistrarSettings } from "../interfaces/registrarSettings";
+  import type { CheckRegistrarsResult } from "../interfaces/checkRegistrarsResult";
+  import TextField from "../shared/TextField.svelte";
+  import Button from "../shared/Button.svelte";
+  import Modal from "../shared/Modal.svelte";
+  import Alert from "../shared/Alert.svelte";
   import { onMount } from "svelte";
-  import { encryptionKey } from "../stores";
-  import { getFileStore, setFileStore } from "../file-store";
 
-  const electron = window.require("electron");
-  const ipcRenderer = electron.ipcRenderer;
-
-  let hasChanges = false;
-  let settings = {};
-  let origSettings = {};
-  let showModal = false;
-  let allRejected = false;
-  let isLoading = true;
-  let isChecking = false;
-  let outcome;
+  let hasChanges: boolean = false;
+  let settings: RegistrarSettings = {
+    gdApiKey: "",
+    gdSecret: "",
+    dynadotApiKey: "",
+    nameSiloApiKey: "",
+    namecheapKey: "",
+    namecheapUser: ""
+  };
+  let origSettings: RegistrarSettings = {...settings};
+  let showModal: boolean = false;
+  let allRejected: boolean = false;
+  let isLoading: boolean = true;
+  let isChecking: boolean = false;
+  let checkRegistrarsResult: CheckRegistrarsResult;
 
   $: {
-    hasChanges = false;
-    Object.entries(settings).forEach(([key, value]) => {
-      if(origSettings[key] !== settings[key]) {
-        hasChanges = true;
-      }
-    });
+    // Here be dragons.. but this works. Since this is a reactive block, hasChanges = false is only
+    // set when something changes and before we check. Then if something has changed we override it.
+    // I know this looks funny, but this works like magic! :)
+    if(settings && origSettings) {
+      hasChanges = false;
+      Object.entries(settings).forEach(([key, value]) => {
+        if(origSettings[key] !== settings[key]) {
+          hasChanges = true;
+        }
+      });
+    }
   }
 
-  function saveChanges() {
-    console.log("Saving changes");
-    origSettings = {...settings};
+  async function saveChanges() {
     showModal = true;
-    setFileStore("registrarSettings", settings);
     isChecking = true; 
-    ipcRenderer.invoke("check-registrars", $encryptionKey).then((response) => {
-      console.log("Received outcome");
-      console.log(response);
-      isChecking = false;
-      outcome = response;
-    }, () => {
-      isChecking = false;
+    allRejected = false;
+
+    checkRegistrarsResult = await $registrarService.checkRegistrars(settings);
+    isChecking = false;
+
+    // If failed equals total checked it means all of them failed
+    if(checkRegistrarsResult.failedClients.length === checkRegistrarsResult.totalChecked) {
       allRejected = true;
+      return;
+    }
+
+    // Only save those that have passed, so build up a new object from the results and save that as the registrar settings
+    // into the file store
+    const toSave: RegistrarSettings = {...settings};
+    checkRegistrarsResult.failedClients.forEach((name) => {
+      name = name.toLowerCase();
+      if(name === "godaddy") {
+        toSave.gdApiKey = null;
+        toSave.gdSecret = null;
+      } else if(name === "dynadot") {
+        toSave.dynadotApiKey = null;
+      } else if(name === "namesilo") {
+        toSave.nameSiloApiKey = null;
+      } else if(name === "namecheap") {
+        toSave.namecheapKey = null;
+        toSave.namecheapUser = null;
+      }
     });
+
+    $fileStoreService.set("registrarSettings", toSave);
   }
 
   function handleClose() {
     showModal = false;
     isChecking = false;
-    outcome = undefined;
+    checkRegistrarsResult = undefined;
     allRejected = false;
   }
 
-  onMount(() => {
-    settings = getFileStore("registrarSettings") || {
-      gdApiKey: "",
-      gdSecret: "",
-      dynadotApiKey: "",
-      nameSiloApiKey: "",
-      namecheapUser: "",
-      namecheapKey: ""
-    };
-    origSettings = {...settings};
+  onMount(async () => {
+    settings = {...await $fileStoreService.get("registrarSettings", settings)}
     isLoading = false;
   });
 
 </script>
 
 <div class="max-w-7xl mx-auto px-4 flex">
-  <h1 class="text-2xl font-semibold text-gray-900 flex-grow">Registrar Settings</h1>
-  <Button disabled={!hasChanges} type="primary" on:click={saveChanges} iconName="save">Save Changes</Button>
+  <h1 class="text-2xl font-semibold text-gray-900 flex-grow">{$_("registrar_settings")}</h1>
+  <Button disabled={!hasChanges} type="primary" on:click={saveChanges} iconName="save">{$_("save_changes")}</Button>
 </div>
 {#if isLoading}
   <div class="max-w-7xl mx-auto px-4 mt-6">
-    <p>Please wait, loading settings...</p>
+    <p>{$_("registrars_route.loading_settings")}</p>
   </div>
 {:else}
   <div class="max-w-7xl mx-auto px-4 mt-6">
     <div class="shadow sm:rounded-md sm:overflow-hidden mb-6">
       <div class="bg-white py-6 px-4 sm:p-6">
         <div>
-          <h2 id="payment_details_heading" class="text-lg leading-6 font-medium text-gray-900">GoDaddy Settings</h2>
+          <h2 class="text-lg leading-6 font-medium text-gray-900">
+            {$_("registrars_route.godaddy_settings")}
+          </h2>
           <p class="mt-1 text-sm text-gray-500">
-            To generate new API keys for GoDaddy please visit 
+            {$_("registrars_route.godaddy_key_message_one")}
             <a href="https://developer.godaddy.com/keys" class="text-steel-900 external">https://developer.godaddy.com/keys</a>. 
-            From here click on <i>Create New Api Key</i>.
+            {$_("registrars_route.godaddy_key_message_two")}.
           </p>
         </div>
         <div class="mt-4 grid grid-cols-4 gap-6">
@@ -100,9 +123,11 @@
     <div class="shadow sm:rounded-md sm:overflow-hidden mb-6">
       <div class="bg-white py-6 px-4 sm:p-6">
         <div class="mb-4">
-          <h2 id="payment_details_heading" class="text-lg leading-6 font-medium text-gray-900">Dynadot Settings</h2>
+          <h2 class="text-lg leading-6 font-medium text-gray-900">
+            {$_("registrars_route.dynadot_settings")}
+          </h2>
           <p class="mt-1 text-sm text-gray-500">
-            Your Dynadot API key can be found at
+            {$_("registrars_route.dynadot_key_message")}
             <a href="https://www.dynadot.com/account/domain/setting/api.html" class="text-steel-900 external">https://www.dynadot.com/account/domain/setting/api.html</a> 
           </p>
         </div>
@@ -112,10 +137,12 @@
     <div class="shadow sm:rounded-md sm:overflow-hidden mb-6">
       <div class="bg-white py-6 px-4 sm:p-6">
         <div class="mb-4">
-          <h2 id="payment_details_heading" class="text-lg leading-6 font-medium text-gray-900">NameSilo Settings</h2>
+          <h2 class="text-lg leading-6 font-medium text-gray-900">
+            {$_("registrars_route.namesilo_settings")}
+          </h2>
           <p class="mt-1 text-sm text-gray-500">
-            Your NameSilo API key can be found at
-            <a href="https://www.namesilo.com/account/api-manager" class="text-steel-900 external">https://www.namesilo.com/account/api-manager</a> 
+            {$_("registrars_route.namesilo_key_message")}
+            <a href="https://www.namesilo.com/account/api-manager" class="text-steel-900 external">https://www.namesilo.com/account/api-manager</a>. 
           </p>
         </div>
         <TextField name="namesiloAPIKey" label="API Key" bind:value={settings.nameSiloApiKey} />
@@ -124,11 +151,13 @@
     <div class="shadow sm:rounded-md sm:overflow-hidden mb-6">
       <div class="bg-white py-6 px-4 sm:p-6">
         <div class="mb-4">
-          <h2 id="payment_details_heading" class="text-lg leading-6 font-medium text-gray-900">Namecheap Settings</h2>
+          <h2 class="text-lg leading-6 font-medium text-gray-900">
+            {$_("registrars_route.namecheap_settings")}
+          </h2>
           <p class="mt-1 text-sm text-gray-500">
-            Your Namecheap API user and key can be set/found at 
+            {$_("registrars_route.namecheap_key_message_one")}
             <a href="https://ap.www.namecheap.com/settings/tools" class="text-steel-900 external">https://ap.www.namecheap.com/settings/tools</a>.
-            Scroll down to Business & Dev Tools and follow the instructions. 
+            {$_("registrars_route.namecheap_key_message_two")}
           </p>
         </div>
         <div class="mt-4 grid grid-cols-4 gap-6">
@@ -142,55 +171,61 @@
       </div>
     </div>
   </div>
+  <div class="max-w-7xl mx-auto px-4 mt-6 text-sm text-gray-400">
+    <p>{$_("registrars_route.security_message_one")}
+      <a href="https://en.wikipedia.org/wiki/Block_cipher_mode_of_operation" class="text-steel-400">aes-256-cbc</a>
+      {$_("registrars_route.security_message_two")}</p>
+    <p class="mt-2">{$_("registrars_route.security_message_three")}</p>
+  </div>
 {/if}
+
 
 <Modal show={showModal}>
   <div class="text-center">
     <h3 class="text-lg leading-6 font-medium text-gray-900">
-      Saving Changes
+      {$_("saving_changes")}
     </h3>
     <div class="mt-2">
       {#if isChecking}
-        <p class="text-sm text-gray-500">Please wait, checking registrar settings</p>
+        <p class="text-sm text-gray-500">{$_("registrars_route.checking_message")}</p>
       {:else if allRejected}
         <div class="mt-2">
           <Alert type="error">
-            <span slot="heading">Critical Error</span>
-            <span slot="body">All provided API keys are invalid. Please check and try again.</span>
+            <span slot="heading">{$_("critical_error")}</span>
+            <span slot="body">{$_("registrars_route.all_rejected_message")}</span>
           </Alert>
         </div>
         <div class="mt-2 text-center">
-          <Button on:click={handleClose}>OK</Button>
+          <Button on:click={handleClose}>{$_("ok")}</Button>
         </div>
-      {:else if outcome}
-        {#if outcome.accepted && outcome.accepted.length > 0}
+      {:else if checkRegistrarsResult}
+        {#if checkRegistrarsResult.acceptedClients && checkRegistrarsResult.acceptedClients.length > 0}
           <Alert type="success">
-            <span slot="heading">Accepted</span>
+            <span slot="heading">{$_("accepted")}</span>
             <div slot="body">
-              <p class="mb-2">The following keys are working as expected:</p>
               <ul>
-                {#each outcome.accepted as clientName}
+                {#each checkRegistrarsResult.acceptedClients as clientName}
                   <li>{clientName}</li>
                 {/each}
               </ul>
             </div>
           </Alert>
         {/if}
-        {#if outcome.rejected && outcome.rejected.length > 0}
+        {#if checkRegistrarsResult.failedClients && checkRegistrarsResult.failedClients.length > 0}
           <Alert type="warning">
-            <span slot="heading">Rejected</span>
+            <span slot="heading">{$_("rejected")}</span>
             <div slot="body">
-              <p class="mb-2">The following keys were rejected:</p>
               <ul>
-                {#each outcome.rejected as clientName}
+                {#each checkRegistrarsResult.failedClients as clientName}
                   <li>{clientName}</li>
                 {/each}
               </ul>
+              <p class="mt-2">{$_("registrars_route.rejected_removal_message")}</p>
             </div>
           </Alert>
         {/if}
         <div class="mt-2 text-center">
-          <Button on:click={handleClose}>OK</Button>
+          <Button on:click={handleClose}>{$_("ok")}</Button>
         </div>
       {/if}
     </div>

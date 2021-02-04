@@ -99,18 +99,17 @@ class GoDaddyAPIClient {
     // Yes, yes.. I know I know, I will rewrite to TypeScript when I have the chance
     if (data) {
       return {
-        _id: data.domain,
         registrar: this.name,
         contactAdmin: this.parseContact(data.contactAdmin),
         contactBilling: this.parseContact(data.contactBilling),
         contactRegistrant: this.parseContact(data.contactRegistrant),
         contactTech: this.parseContact(data.contactTech),
-        registrationDate: data.createdAt ? data.createdAt : null,
-        expiryDate: data.expires ? data.expires : null,
-        transferEligbilityDate: data.transferAwayEligibleAt
-          ? data.transferAwayEligibleAt
+        registrationDate: data.createdAt ? new Date(data.createdAt) : null,
+        expiryDate: data.expires ? new Date(data.expires) : null,
+        transferEligibilityDate: data.transferAwayEligibleAt
+          ? new Date(data.transferAwayEligibleAt)
           : null,
-        registrarDomainId: data.domainId,
+        registrarDomainId: data.domainId.toString(),
         locked: data.locked,
         nameServers: data.nameServers,
         hasAutoRenewal: data.renewAuto,

@@ -1,29 +1,40 @@
-import GoDaddyClient from "./clients/godaddy-api-client";
+import GoDaddyClient from "../clients/godaddyApiClient";
 import { ipcMain } from "electron";
-const Store = require("electron-store");
+import { mainFileStore } from "../mainFileStore";
 
+const log = require("electron-log");
 const goDaddyClient = new GoDaddyClient();
 
-function getRegistrarSettings(encryptionKey) {
-  const store = new Store({
-    encryptionKey,
-  });
-  const registrarSettings = store.get("registrarSettings");
-
-  if (registrarSettings === undefined || registrarSettings === null) {
-    throw new Error("Registrar settings have not been defined yet!");
-  }
-
-  return registrarSettings;
-}
-
 export default function () {
-  ipcMain.handle("check-registrars", async (evt, encryptionKey) => {
-    const registrarSettings = getRegistrarSettings(encryptionKey);
-    const promises = [];
+  /**
+   * Responsible for checking registrars to determine if the given registrar settings
+   * are valid.
+   */
+  ipcMain.handle("check-registrars", async (evt, registrarSettings) => {
+    log.debug("check-registrars received registrarSettings");
     const gdApiKey = registrarSettings.gdApiKey;
     const gdSecret = registrarSettings.gdSecret;
-    const clientsToCall = [];
+    let result = {
+      totalChecked: 0,
+      acceptedClients: [],
+      failedClients: [],
+    };
+
+    const doCheck = async (client) => {
+      const name = client.getName();
+      log.debug(`Checking ${name} API keys are valid`);
+      try {
+        result.totalChecked++;
+        await client.check();
+        result.acceptedClients.push(name);
+        log.debug(`${name} has correct API keys`);
+      } catch (ex) {
+        log.debug(
+          `${name} API keys are invalid or GoDaddy returned an unexpected response`
+        );
+        result.failedClients.push(name);
+      }
+    };
 
     if (
       gdApiKey &&
@@ -35,42 +46,11 @@ export default function () {
         registrarSettings.gdApiKey,
         registrarSettings.gdSecret
       );
-      clientsToCall.push(goDaddyClient);
+
+      await doCheck(goDaddyClient);
     }
 
-    return new Promise((resolution, rejection) => {
-      clientsToCall.forEach((client) => {
-        promises.push(client.check());
-      });
-      Promise.allSettled(promises).then((results) => {
-        let passed = 0;
-        const failed = [];
-        const accepted = [];
-        let clientIndex = 0;
-        results.forEach(function (result) {
-          if (result.status !== "rejected") {
-            passed++;
-            accepted.push(clientsToCall[clientIndex].getName());
-          } else {
-            failed.push(clientsToCall[clientIndex].getName());
-          }
-          clientIndex++;
-        });
-
-        // 0 passed means all failed, reject completely
-        if (passed === 0) {
-          rejection("All failed");
-        } else {
-          // Let the consumer know which ones passed and which didn't
-          resolution({
-            passed: passed,
-            total: clientsToCall.length,
-            accepted,
-            failed,
-          });
-        }
-      });
-    });
+    return result;
   });
 
   /**
@@ -79,8 +59,8 @@ export default function () {
    * doesn't support it yet, and that helped to save me a lot of time when setting up snowpack
    * with Electron initially, to help me get this project of the ground.
    */
-  ipcMain.handle("get-all-domains", async (evt, encryptionKey) => {
-    const registrarSettings = getRegistrarSettings(encryptionKey);
+  ipcMain.handle("get-all-domains", async () => {
+    const registrarSettings = mainFileStore.get("registrarSettings");
     const clientsToCall = [];
 
     if (
@@ -128,7 +108,7 @@ export default function () {
 
         // This means they all failed, so we must reject
         if (resolutionResult.rejectedClients.length === clientsToCall.length) {
-          rejection();
+          rejection("All failed");
           return;
         }
 

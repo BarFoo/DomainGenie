@@ -1,3 +1,10 @@
 {
-    "css.customData": [".vscode/css_custom_data.json"]
+  "css.customData": [".vscode/css_custom_data.json"],
+  "i18n-ally.localesPaths": ["src/renderer/locales", "src\\renderer\\locales"],
+  "i18n-ally.keystyle": "nested",
+  "tree-generator.exclude": {
+    "**node_modules": true,
+    "**dist": true,
+    "**vscode": true
+  }
 }

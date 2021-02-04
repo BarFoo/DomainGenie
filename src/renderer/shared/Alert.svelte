@@ -1,8 +1,8 @@
-<script>
-  export let type;
+<script lang="ts">
+  export let type: string;
 </script>
 
-<div class="rounded-md p-4 text-left" 
+<div class="rounded-md p-4 text-left mb-4" 
   class:bg-green-50={type === "success"}
   class:bg-yellow-50={type === "warning"}
   class:bg-red-50={type === "error"}
@@ -29,10 +29,10 @@
     </div>
     <div class="ml-3">
       {#if $$slots.heading}
-        <h3 class="text-sm font-medium mb-4" 
+        <h3 class="text-md font-bold mb-4" 
           class:text-green-800={type === "success"}
           class:text-yellow-800={type === "warning"}
-          class:text-red-800={type === "warning"}
+          class:text-red-800={type === "error"}
           class:text-blue-800={type === "info"}>
           <slot name="heading" />
         </h3>
@@ -41,7 +41,7 @@
         <div class="mt-2 text-sm"
           class:text-green-700={type === "success"}
             class:text-yellow-700={type === "warning"}
-            class:text-red-700={type === "warning"}
+            class:text-red-700={type === "error"}
             class:text-blue-700={type === "info"}>
           <slot name="body" />
         </div>

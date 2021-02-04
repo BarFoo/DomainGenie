@@ -1,6 +1,6 @@
-<script>
+<script lang="ts">
   import { fade } from "svelte/transition";
-  export let show = false;
+  export let show: Boolean = false;
 </script>
 
 {#if show}

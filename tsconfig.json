@@ -1,0 +1,14 @@
+{
+  "extends": "electron-snowpack/config/tsconfig.json",
+  "include": ["src", "types/window.d.ts"],
+  "compilerOptions": {
+    "allowSyntheticDefaultImports": true,
+    "importsNotUsedAsValues": "error",
+    "isolatedModules": true,
+    "sourceMap": true,
+    "types": ["snowpack-env", "svelte"],
+    "resolveJsonModule": true,
+    "esModuleInterop": true,
+    "moduleResolution": "node"
+  }
+}

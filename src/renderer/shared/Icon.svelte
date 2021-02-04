@@ -1,7 +1,7 @@
-<script>
-  export let name;
-  export let width = "1em";
-  export let height = "1em";
+<script lang="ts">
+  export let name: string;
+  export let width: string = "1rem";
+  export let height: string = "1rem";
   let icons = [
     {
       box: 24,
@@ -57,6 +57,11 @@
       box: 24,
       name: "arrowRight",
       svg: `<path fill="none" d="M0 0h24v24H0z"/><path d="M13.172 12l-4.95-4.95 1.414-1.414L16 12l-6.364 6.364-1.414-1.414z"/>`
+    },
+    {
+      box: 24,
+      name: "search",
+      svg: `<path fill="none" d="M0 0h24v24H0z"/><path d="M18.031 16.617l4.283 4.282-1.415 1.415-4.282-4.283A8.96 8.96 0 0 1 11 20c-4.968 0-9-4.032-9-9s4.032-9 9-9 9 4.032 9 9a8.96 8.96 0 0 1-1.969 5.617zm-2.006-.742A6.977 6.977 0 0 0 18 11c0-3.868-3.133-7-7-7-3.868 0-7 3.132-7 7 0 3.867 3.132 7 7 7a6.977 6.977 0 0 0 4.875-1.975l.15-.15z"/>`
     }
   ];
   let displayIcon = icons.find((e) => e.name === name);

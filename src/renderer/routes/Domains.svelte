@@ -1,267 +1,334 @@
-<script>
+<script lang="ts">
 
   /**
-   * @todo Clean up the table in this file, make it its own component.
-   * @todo Wire up pagination
-   * @todo Plenty more yet I am sure
+   * @todo Tidy this up, separate out table, fitlers and pagination into their own components
    */
+
   import { onMount } from "svelte";
-  import Button from "../common/Button.svelte";
-  import Icon from "../common/Icon.svelte"; 
-  import Modal from "../common/Modal.svelte";
-  import Alert from "../common/Alert.svelte";
-  import { syncDomains } from "../utils";
-  import { getFileStore } from "../file-store";
-  import { defaultDateFormat } from "../stores";
+  import { _, date } from "svelte-i18n";
+  import Button from "../shared/Button.svelte";
+  import Icon from "../shared/Icon.svelte"; 
+  import Modal from "../shared/Modal.svelte";
+  import Alert from "../shared/Alert.svelte";
+  import SearchField from "../shared/SearchField.svelte";
+  import { fileStoreService, appDatabase, registrarService } from "../stores";
+  import type  { GeneralSettings } from "../interfaces/generalSettings";
+  import { push } from "svelte-spa-router";
+  import type { Domain } from "../database/domain";
+  import PageSizeDropdown from "../shared/PageSizeDropdown.svelte";
+  import Table from "../shared/Table.svelte";
+  import Checkbox from "../shared/Checkbox.svelte";
+  import Radio from "../shared/Radio.svelte";
+  import Dropdown from "../shared/Dropdown.svelte";
 
-  const PouchDB = window.require("pouchdb-browser");
-  const dayjs = window.require("dayjs");
-  PouchDB.plugin(window.require('pouchdb-find'));
-  const db = new PouchDB("domains");
+  // Table column definition
+  const cols = [
+    {
+      key: "domainName",
+      displayText: $_("domain_name")
+    },
+    {
+      key: "registrar",
+      displayText: $_("registrar")
+    },
+    {
+      key: "registrationDate",
+      displayText: $_("registered"),
+      formatter: (val) => $date(val, {format: "medium"})
+    },
+    {
+      key: "expiryDate",
+      displayText: $_("expires"),
+      formatter: (val) => $date(val, { format: "medium"})
+    }
+  ];
+
+  // Filter states
+  const defaultFilters = {
+    query: "",
+    pageSize: 10,
+    expires: 0,
+    orderBy: "domainName",
+    isDescending: false
+  };
+  let filters = {...defaultFilters};
+
+  // Domains states
+  let isSyncingDomains: boolean = false;
+  let hasFinishedImporting: boolean = false;
+  let domainsAdded: number = 0;
+  let domainsUpdated: number = 0;
+  let rejectedClients: string[] = [];
+  let domains: Domain[] = [];
+  let totalDomains: number = 0;
+  let isFirstLoad: boolean = true;
+  let isLoadingDomains: boolean = false;
+  let hasRegistrarSettings = false;
+  let hasSyncError: boolean = false;
+
+  // Pagination
+  let currentPage: number = -1;
+  let totalPages: number;
+  let currentStartIndex: number;
+  let currentEndIndex: number;
+  let requiresSync: boolean = false;
+
+  $:{
+    // Letting Svelte work its magic :)
+    if(!isFirstLoad && filters) {
+      loadDomains(0);
+    }
+  }
   
-  let isSyncingDomains = false;
-  let syncError = false;
-  let hasFinishedImporting = false;
-  let domainsAdded = 0;
-  let domainsUpdated = 0;
-  let pageSize = 10;
-  let domains = [];
-  let filterName;
-  let currentPage = -1;
-  let totalDomains = 0;
-  let isFirstLoad = true;
-  let dateFormat = $defaultDateFormat;
-  let isLoadingDomains = false;
-  let pageStartKeys = {};
-
-  $: totalPages = totalDomains > 0 && currentPage > 0 ? (Math.round(totalDomains / pageSize) - 1): 1;
-  $: currentStartIndex = (currentPage > -1 ? (currentPage * pageSize): 0) + 1;
-  $: currentEndIndex = currentPage === totalPages ? totalDomains : (currentStartIndex - 1 + pageSize);
-  
-  const domainsGeneralIndex = "domains-general-index";
-
   function handleClose() {
     isSyncingDomains = false;
     hasFinishedImporting = false;
     domainsAdded = 0;
     domainsUpdated = 0;
+    hasSyncError = false;
   }
 
   function handleSyncDomains() {
     isSyncingDomains = true;
     hasFinishedImporting = false;
-    syncDomains(db).then((totals) => {
-      domainsAdded = totals.domainsAdded;
-      domainsUpdated = totals.domainsUpdated;
+    $registrarService.syncDomains().then((result) => {
+      domainsAdded = result.domainsAdded;
+      domainsUpdated = result.domainsUpdated;
+      rejectedClients = result.rejectedClients;
       totalDomains = domainsAdded + domainsUpdated;
       hasFinishedImporting = true;
       loadDomains(0);
+    }).catch(() => {
+      hasSyncError = true;
     });
   }
 
-  function loadDomains(page) {
+  async function loadDomains(page) {
 
-    if(page === currentPage || isLoadingDomains) {
+    if(isLoadingDomains) {
       return;
     }
 
-    let findOptions = {
-      selector: {
-        domainName: {$gte: null}
-      },
-      sort: ['domainName'],
-      limit: pageSize,
-      use_index: domainsGeneralIndex
-    };
+    currentPage = page;
+    const hasQuery = filters.query && filters.query !== "";
+    isLoadingDomains = true;
 
-    if(domains.length > 0 && page > 0) {
-      if(page < currentPage) {
-        findOptions.selector = {
-          domainName: {$gte: pageStartKeys[page]}
-        }
-      } else if(page > currentPage) {
-        const lastName = domains[domains.length - 1].domainName;
-        pageStartKeys[page] = lastName;
-        findOptions.selector = {
-          domainName: {$gt: lastName}
-        }
-      }
+    let countOpts: any = $appDatabase.domains;
+    const today = new Date();
+    const future = new Date();
+    future.setDate(future.getDate() + filters.expires);
+
+    if(hasQuery) {
+      countOpts = countOpts.filter(d => d.domainName.startsWith(filters.query));
     }
 
-    return db.find(findOptions).then((response) => {
-      domains = [...response.docs];
-      currentPage = page;
-      isLoadingDomains = false;
-      return Promise.resolve();
-    });
+    if(filters.expires > 0) {
+      countOpts = countOpts.where("expiryDate").between(today, future);
+    }
+
+    totalDomains = await countOpts.count();
+
+    totalPages = totalDomains > 0 && page > 0 ? (Math.round(totalDomains / filters.pageSize) - 1): 1;
+    currentStartIndex = (page > -1 ? (currentPage * filters.pageSize): 0) + 1;
+    currentEndIndex = page === totalPages ? totalDomains : 
+       (currentStartIndex - 1 + (totalDomains < filters.pageSize ? totalDomains : filters.pageSize));
+ 
+    if(filters.expires > 0) {
+      let domainOpts = $appDatabase.domains
+        .where("expiryDate")
+        .between(today, future);
+      
+      if(filters.isDescending) {
+        domainOpts = domainOpts.reverse();
+      }
+
+      if(filters.query) {
+        domainOpts = domainOpts.and(d => d.domainName.startsWith(filters.query.toLowerCase()));
+      }
+
+      domains = [...await domainOpts.offset(page * filters.pageSize).limit(filters.pageSize).sortBy(filters.orderBy)];
+    } else {
+      let domainOpts = $appDatabase.domains.orderBy(filters.orderBy);
+
+      if(filters.isDescending) {
+        domainOpts = domainOpts.reverse();
+      }
+
+      if(hasQuery) {
+        domainOpts = domainOpts.and(d => d.domainName.startsWith(filters.query));
+      }
+
+      domains = [...await domainOpts.offset(page * filters.pageSize).limit(filters.pageSize).toArray()];
+    }
+
+    isLoadingDomains = false;
   }
 
-  onMount(() => {
-    // Get the total number of stored pouch db documents
-    // Using info is less overhead, but we must do this first before we can load the docs and apply pagination
-    const settings = getFileStore("settings");
-    if(settings) {
-      pageSize = settings.domainsPageSize;
-      dateFormat = settings.dateFormat;
-    }
-    // Create indexes used for domains selectors and querying
-    db.createIndex({
-      index: {
-        fields: ["domainName", "registrationDate", "expiryDate"]
-      },
-      ddoc: domainsGeneralIndex
-    }).then(() => {
-      db.info().then((info) => {
-        totalDomains = info.doc_count;
-        loadDomains(0).then(() => { isFirstLoad = false });
-      });
-    });
+  onMount(async () => {
+    // Disable synchronize if no registrar settings are enabled
+    const registrarSettings = await $fileStoreService.get("registrarSettings", null);
 
+    if(registrarSettings === null) {
+      hasRegistrarSettings = false;
+      isFirstLoad = false;
+      push("/registrars");
+      return;
+    }
+
+    hasRegistrarSettings = true;
+    const settings = await $fileStoreService.get<GeneralSettings>("settings");
+
+    if(settings) {
+      defaultFilters.pageSize = settings.domainsPageSize;
+      filters.pageSize = settings.domainsPageSize;
+    }
+
+    await loadDomains(0);
+
+    // If no domains come back on initial load it means they require sync
+    if(domains.length === 0) {
+      requiresSync = true;
+    }
+
+    isFirstLoad = false;
   });
 </script>
 
-<div class="flex max-w-7xl mx-auto px-4 sm:px-6 md:px-8 gap-8">
-  <h1 class="text-2xl font-semibold text-gray-900 flex-grow">Domains</h1>
-  <div class="relative text-gray-500">
-    <input class="border-2 border-gray-300 bg-white h-10 px-5 py-2 pr-16 rounded-lg text-sm focus:outline-none w-96 focus:ring-gray-600 focus:border-gray-600"
-      type="search" placeholder="Filter by name..." bind:value={filterName}>
-    <button class="absolute right-0 top-0 mt-3 mr-4">
-      <svg class="text-gray-300 h-4 w-4 fill-current" xmlns="http://www.w3.org/2000/svg"
-        xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" id="Capa_1" x="0px" y="0px"
-        viewBox="0 0 56.966 56.966" style="enable-background:new 0 0 56.966 56.966;" xml:space="preserve"
-        width="24px" height="24px">
-        <path
-          d="M55.146,51.887L41.588,37.786c3.486-4.144,5.396-9.358,5.396-14.786c0-12.682-10.318-23-23-23s-23,10.318-23,23  s10.318,23,23,23c4.761,0,9.298-1.436,13.177-4.162l13.661,14.208c0.571,0.593,1.339,0.92,2.162,0.92  c0.779,0,1.518-0.297,2.079-0.837C56.255,54.982,56.293,53.08,55.146,51.887z M23.984,6c9.374,0,17,7.626,17,17s-7.626,17-17,17  s-17-7.626-17-17S14.61,6,23.984,6z" />
-      </svg>
-    </button>
-  </div>
-  <Button type="primary" title="Synchronizes domains with all your configured registrars"
-  iconName="sync" on:click={handleSyncDomains}>Synchronize</Button>
+<div class="flex max-w-7xl px-4 mx-auto">
+  <h1 class="text-2xl font-semibold text-gray-900 flex-grow">{$_("domains")}</h1>
+  <Button type="primary" iconName="sync" on:click={handleSyncDomains} disabled={!hasRegistrarSettings}>{$_("synchronize")}</Button>
 </div>
-<div class="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
-  <div class="py-4">
-    {#if isFirstLoad}
-      <p>Loading...</p>
-    {:else if totalDomains > 0}
-      <div class="flex flex-col">
-        <div class="-my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
-          <div class="py-2 align-middle inline-block min-w-full sm:px-6 lg:px-8">
-            <div
-              class="shadow overflow-hidden border-b border-gray-200 sm:rounded-lg"
-            >
-              <table class="min-w-full divide-y divide-gray-200">
-                <thead class="bg-gray-50">
-                  <tr>
-                    <th
-                      scope="col"
-                      class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                    >
-                      Domain Name
-                    </th>
-                    <th
-                      scope="col"
-                      class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                    >
-                      Registrar
-                    </th>
-                    <th
-                      scope="col"
-                      class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                    >
-                      Name Servers
-                    </th>
-                    <th
-                      scope="col"
-                      class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                    >
-                      Expires
-                    </th>
-                  </tr>
-                </thead>
-                <tbody class="bg-white divide-y divide-gray-200">
-                    {#each domains as domain}
-                      <tr class="cursor-pointer hover:bg-gray-50">
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {domain.domainName}
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {domain.registrar}
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {domain.nameServers !== null ? domain.nameServers.join(", ") : ""}
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {dayjs(domain.expiryDate).format(dateFormat)}
-                        </td>
-                      </tr>
-                    {/each}
-                </tbody>
-              </table>
-            </div>
+
+<div class="pt-6 max-w-7xl px-4 mx-auto grid grid-cols-12 gap-8">
+  {#if hasRegistrarSettings && !requiresSync}
+    <div class="col-span-3 flex flex-col gap-4 sticky">
+      <div>
+        <h3 class="text-gray-400 text-xs uppercase mb-2">{$_("filter_by_name")}</h3>
+        <SearchField bind:value={filters.query} />
+      </div>
+      <div class="text-gray-400">
+        <h3 class="text-gray-400 text-xs uppercase mb-2">{$_("filter_by_dates")}</h3>
+        <div class="mb-2">
+          <Radio bind:options={filters.expires} value={30}>{$_("expires_within", { values: { days: "30"} })}</Radio>
+        </div>
+        <div class="mb-2">
+          <Radio bind:options={filters.expires} value={60}>{$_("expires_within", { values: { days: "60"} })}</Radio>
+        </div>
+        <div class="mb-2">
+          <Radio bind:options={filters.expires} value={90}>{$_("expires_within", { values: { days: "90"} })}</Radio>
+        </div>
+      </div>
+      <div class="text-gray-400">
+        <h3 class="text-xs uppercase mb-2">{$_("order_by")}</h3>
+        <div class="mb-2">
+          <Radio bind:options={filters.orderBy} value={"domainName"}>{$_("domain_name")}</Radio>
+        </div>
+        <div class="mb-2">
+          <Radio bind:options={filters.orderBy} value={"expiryDate"}>{$_("expires")}</Radio>
+        </div>
+        <div class="mb-2">
+          <Radio bind:options={filters.orderBy} value={"registrationDate"}>{$_("registered")}</Radio>
+        </div>
+        <div class="mb-2">
+          <Dropdown bind:value={filters.isDescending}>
+            <option value={false}>{$_("ascending")}</option>
+            <option value={true}>{$_("descending")}</option>
+          </Dropdown>
+        </div>
+      </div>
+      <div class="text-gray-400">
+        <h3 class="text-gray-400 text-xs uppercase mb-2">{$_("rows_per_page")}</h3>
+        <PageSizeDropdown bind:value={filters.pageSize} />
+      </div>
+    </div>
+    <div class="col-span-9">
+      {#if isFirstLoad}
+        <p>{$_("loading")}</p>
+      {:else if totalDomains > 0}
+        <Table {cols} items={domains} isRowClickable={true} on:rowClick={(key) => push(`/domains/${key}`)} />
+        <div class="mt-4 flex">
+          <div class="text-gray-400 text-sm leading-10">
+            {$_("domains_route.pagination_text", { values: { currentStartIndex, currentEndIndex, totalDomains}})}
+          </div>
+          <div class="flex-1 flex justify-end">
+            {#if currentPage > 0}
+              <div class="mr-2">
+                <Button iconName="arrowLeft" uppercase={false} disabled={isLoadingDomains}
+                on:click={() => loadDomains(currentPage - 1)}>{$_("previous_page")}</Button>
+              </div>
+            {/if}
+            {#if currentPage < totalPages}
+              <Button trailingIconName="arrowRight" uppercase={false} disabled={isLoadingDomains} 
+              on:click={() => loadDomains(currentPage + 1)}>{$_("next_page")}</Button>
+            {/if}
           </div>
         </div>
-      </div>
-      <div class="mt-4 flex">
-        <div class="flex-grow text-gray-400 text-sm leading-10">
-          Showing {currentStartIndex} - {currentEndIndex} of {totalDomains} domains. Click on a domain to view more information.
-        </div>
-        <div class="flex-1 flex justify-between sm:justify-end">
-          {#if currentPage > 0}
-            <div class="mr-2">
-              <Button iconName="arrowLeft" uppercase={false} disabled={isLoadingDomains}
-              on:click={() => loadDomains(currentPage - 1)}>Previous Page</Button>
-            </div>
-          {/if}
-          {#if currentPage < totalPages}
-            <Button trailingIconName="arrowRight" uppercase={false} disabled={isLoadingDomains} 
-            on:click={() => loadDomains(currentPage + 1)}>Next Page</Button>
-          {/if}
-        </div>
-      </div>
-    {:else}
-      <p>You have no domains yet. Check your configured registrars and then come back here and click on synchronize.</p>
-    {/if}
-   
-  </div>
+      {:else}
+        <p>{$_("domains_route.no_domains_message")}</p>
+      {/if}
+    </div>
+  {:else if requiresSync}
+    <p>
+      {$_("domains_route.requires_sync_message")}
+    </p>
+  {:else}
+    <p>
+      {$_("domains_route.no_registrars_message")}
+    </p>
+  {/if}
 </div>
 
 <Modal show={isSyncingDomains}>
   <div class="w-80">
     <h3 class="text-lg leading-6 font-medium text-gray-900 mb-3">
-      Syncing Domains
+      {$_("domains_route.syncing")}
     </h3>
     {#if !hasFinishedImporting}
       <div>
-        <p class="mb-2">We are fetching your domains from all your configured registrars.</p>
-        <p>Please wait, it could take several minutes.</p>
+        <p class="mb-2">{$_("domains_route.fetching")}</p>
+        <p>{$_("domains_route.please_wait")}</p>
       </div>
-      {#if syncError}
+      <div class="mt-3 mb-3 mx-auto w-3 h-3">
+        <Icon class="text-steel-900 animate-spin" width="2em" height="2em" name="loader" />
+      </div>
+    {:else}
+      {#if hasSyncError}
         <div class="mt-2">
           <Alert type="error">
-            <span slot="heading">Error Synchronizing Domains</span>
-            <span slot="body">Please check you have a valid internet connection.</span>
+            <span slot="heading">{$_("domains_route.sync_error_heading")}</span>
+            <span slot="body">{$_("domains_route.sync_error_message")}</span>
           </Alert>
         </div>
         <div class="mt-2 text-center">
-          <Button on:click={handleClose}>Close</Button>
-        </div>
+          <Button on:click={handleClose}>{$_("close")}</Button>
+        </div>  
       {:else}
-        <div class="mt-3 mb-3 mx-auto w-3 h-3">
-          <Icon class="text-steel-900 animate-spin" width="2em" height="2em" name="loader" />
+        <Alert type="success">
+          <span slot="heading">{$_("success")}</span>
+          <div slot="body">
+            <p class="mb-2">{$_("domains_route.imported_message", { values: {total: domainsAdded + domainsUpdated}})}</p>
+            <p class="mb-2">{$_("added")}: {domainsAdded}</p>
+            <p>{$_("updated")}: {domainsUpdated}</p>
+          </div>
+        </Alert>
+        {#if rejectedClients && rejectedClients.length > 0}
+          <div class="mt-4">
+            <Alert type="warning">
+              <span slot="heading">{$_("domains_route.rejected_clients_heading")}</span>
+              <div slot="body">
+                <ul>
+                  {#each rejectedClients as clientName}
+                    <li>{clientName}</li>
+                  {/each}
+                </ul>
+              </div>
+            </Alert>
+          </div>
+        {/if}
+        <div class="mt-2">
+            <Button on:click={handleClose}>{$_("close")}</Button>
         </div>
       {/if}
-    {:else}
-      <Alert type="success">
-        <span slot="heading">Success</span>
-        <div slot="body">
-          <p class="mb-2">Imported {domainsAdded + domainsUpdated} domains.</p>
-          <p class="mb-2"><b>Added: {domainsAdded}</b></p>
-          <p><b>Updated: {domainsUpdated}</b></p>
-        </div>
-      </Alert>
-      <div class="mt-2">
-          <Button on:click={handleClose}>Close</Button>
-      </div>
     {/if}
   </div>
 </Modal>

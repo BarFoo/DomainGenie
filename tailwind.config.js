@@ -2,7 +2,7 @@ const defaultTheme = require("tailwindcss/defaultTheme");
 
 module.exports = {
   purge: {
-    content: ["./src/**/*.svelte"],
+    content: ["./src/**/*.svelte", "./src/renderer/**/*.ts"],
   },
   theme: {
     extend: {

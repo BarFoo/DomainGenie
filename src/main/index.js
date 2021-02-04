@@ -1,10 +1,10 @@
-import { app, BrowserWindow, ipcMain } from "electron";
+import { app, BrowserWindow } from "electron";
 import { getAssetURL } from "electron-snowpack";
 import * as path from "path";
-import registrarBootstrap from "./registrar-bootstrap";
+import registrarBootstrap from "./bootstrappers/registrars";
+import fileStoreBootstrap from "./bootstrappers/fileStore";
 
 const debug = require("electron-debug");
-const Store = require("electron-store");
 
 // Keep a global reference of the window object, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.
@@ -27,7 +27,10 @@ function createWindow() {
     // See https://stackoverflow.com/questions/63165985/electron-browserwindow-switches-to-dark-mode-when-opening-devtools
     backgroundColor: "#FFF",
     webPreferences: {
-      nodeIntegration: true,
+      nodeIntegration: false,
+      contextIsolation: true,
+      enableRemoteModule: false,
+      preload: path.join(__dirname, "preload.js"),
     },
   });
 
@@ -73,5 +76,5 @@ debug({
   showDevTools: false,
 });
 
-Store.initRenderer();
 registrarBootstrap();
+fileStoreBootstrap();

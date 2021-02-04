@@ -1,12 +1,11 @@
-<script>
-  import Icon from "../common/Icon.svelte";
+<script lang="ts">
+  import Icon from "../shared/Icon.svelte";
   import {link} from 'svelte-spa-router';
   import {location} from 'svelte-spa-router';
 
-  export let iconName;
-  export let title = "";
-  export let to = "/";
-
+  export let iconName: string;
+  export let title: string = "";
+  export let to: string = "/";
 </script>
 
 <a href={to} use:link class="text-white group flex items-center px-2 py-2 cursor-pointer text-sm font-medium rounded-md"
