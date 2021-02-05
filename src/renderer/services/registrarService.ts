@@ -1,9 +1,9 @@
 import type { AppDatabase } from "../database/appDatabase";
 import type { Domain } from "../database/domain";
-import type { CheckRegistrarsResult } from "../interfaces/checkRegistrarsResultsult";
-import type { GetAllDomainsResult } from "../interfaces/getAllDomainsResultsult";
-import type { RegistrarSettings } from "../interfaces/registrarSettingsings";
-import type { SyncDomainsResult } from "../interfaces/syncDomainsResultsult";
+import type { CheckRegistrarsResult } from "../interfaces/checkRegistrarsResult";
+import type { GetAllDomainsResult } from "../interfaces/getAllDomainsResult";
+import type { RegistrarSettings } from "../interfaces/registrarSettings";
+import type { SyncDomainsResult } from "../interfaces/syncDomainsResult";
 
 /**
  * A service responsible for communicating with the registrar handles in the main process.

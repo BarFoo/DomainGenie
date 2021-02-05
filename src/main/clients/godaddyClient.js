@@ -1,14 +1,13 @@
 const axios = require("axios");
 
-class GoDaddyAPIClient {
+class GoDaddyClient {
   constructor() {
-    // Switch the following if testing
-    // TODO: Move this out to a config file?
+    // The OTE environment appears to have completely gone offline. :\
     // const baseURL = "https://api.ote-godaddy.com/"
     const baseURL = "https://api.godaddy.com/v1/";
 
-    // This is how many seconds are delayed in between repeated requests when the user has
-    // more than 1000 domains.
+    // How many milliseconds to delay between each GD request when there are more than
+    // Max GD limit domains.
     this.repeatTimeout = 1000;
     this.name = "GoDaddy";
 
@@ -66,7 +65,7 @@ class GoDaddyAPIClient {
         });
       };
 
-      // Repeat until all domains populated
+      // Repeat until all domains are populated
       repeat()
         .then(() => {
           resolve(domains);
@@ -75,10 +74,6 @@ class GoDaddyAPIClient {
           rejection(domains);
         });
     });
-  }
-
-  getDomain(domain) {
-    return this.client.get(`domains/${domain}`, this.commonArgs());
   }
 
   check() {
@@ -95,8 +90,6 @@ class GoDaddyAPIClient {
   }
 
   parseDomain(data) {
-    // Handle parsing a GoDaddy domain object to our unified object equivalent
-    // Yes, yes.. I know I know, I will rewrite to TypeScript when I have the chance
     if (data) {
       return {
         registrar: this.name,
@@ -169,4 +162,4 @@ class GoDaddyAPIClient {
   }
 }
 
-export default GoDaddyAPIClient;
+export default GoDaddyClient;

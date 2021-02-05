@@ -1,5 +1,7 @@
 export interface ColumnDefinition {
   key: string;
-  displayText: string;
+  headerText: string;
   formatter?: Function;
+  hasEmphasis?: boolean;
+  hasLight?: boolean;
 }

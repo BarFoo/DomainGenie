@@ -8,6 +8,7 @@
   import Modal from "../shared/Modal.svelte";
   import Alert from "../shared/Alert.svelte";
   import { onMount } from "svelte";
+import Layout from "./_Layout.svelte";
 
   let hasChanges: boolean = false;
   let settings: RegistrarSettings = {
@@ -88,28 +89,24 @@
 
 </script>
 
-<div class="max-w-7xl mx-auto px-4 flex">
-  <h1 class="text-2xl font-semibold text-gray-900 flex-grow">{$_("registrar_settings")}</h1>
-  <Button disabled={!hasChanges} type="primary" on:click={saveChanges} iconName="save">{$_("save_changes")}</Button>
-</div>
-{#if isLoading}
-  <div class="max-w-7xl mx-auto px-4 mt-6">
-    <p>{$_("registrars_route.loading_settings")}</p>
+<Layout heading={$_("registrar_settings")}>
+  <div slot="headerRight">
+    <Button disabled={!hasChanges} type="primary" size="large" on:click={saveChanges} iconName="save">{$_("save_changes")}</Button>
   </div>
-{:else}
-  <div class="max-w-7xl mx-auto px-4 mt-6">
-    <div class="shadow sm:rounded-md sm:overflow-hidden mb-6">
-      <div class="bg-white py-6 px-4 sm:p-6">
-        <div>
-          <h2 class="text-lg leading-6 font-medium text-gray-900">
+  {#if isLoading}
+    <p>{$_("registrars_route.loading_settings")}</p>
+  {:else}
+    <div class="flex flex-col divide-y divide-gray-200 text-steel-800 space-y-8">
+      <div>
+        <h2 class="text-lg leading-6 font-medium text-gray-900">
             {$_("registrars_route.godaddy_settings")}
-          </h2>
-          <p class="mt-1 text-sm text-gray-500">
-            {$_("registrars_route.godaddy_key_message_one")}
-            <a href="https://developer.godaddy.com/keys" class="text-steel-900 external">https://developer.godaddy.com/keys</a>. 
-            {$_("registrars_route.godaddy_key_message_two")}.
-          </p>
-        </div>
+        </h2>
+        <p class="mt-1 text-sm text-gray-500">
+          {$_("registrars_route.godaddy_key_message_one")}
+          <a href="https://developer.godaddy.com/keys" class="text-steel-900 external">https://developer.godaddy.com/keys</a>. 
+          {$_("registrars_route.godaddy_key_message_two")}.
+        </p>
+
         <div class="mt-4 grid grid-cols-4 gap-6">
           <div class="col-span-2">
             <TextField name="gdApiKey" label="API Key" bind:value={settings.gdApiKey} />
@@ -119,9 +116,8 @@
           </div>
         </div>
       </div>
-    </div>
-    <div class="shadow sm:rounded-md sm:overflow-hidden mb-6">
-      <div class="bg-white py-6 px-4 sm:p-6">
+      
+      <div class="pt-6">
         <div class="mb-4">
           <h2 class="text-lg leading-6 font-medium text-gray-900">
             {$_("registrars_route.dynadot_settings")}
@@ -133,9 +129,8 @@
         </div>
         <TextField name="dynadotAPIKey" label="API Key" bind:value={settings.dynadotApiKey} />
       </div>
-    </div>
-    <div class="shadow sm:rounded-md sm:overflow-hidden mb-6">
-      <div class="bg-white py-6 px-4 sm:p-6">
+
+      <div class="pt-6">
         <div class="mb-4">
           <h2 class="text-lg leading-6 font-medium text-gray-900">
             {$_("registrars_route.namesilo_settings")}
@@ -147,9 +142,8 @@
         </div>
         <TextField name="namesiloAPIKey" label="API Key" bind:value={settings.nameSiloApiKey} />
       </div>
-    </div>
-    <div class="shadow sm:rounded-md sm:overflow-hidden mb-6">
-      <div class="bg-white py-6 px-4 sm:p-6">
+        
+      <div class="pt-6">
         <div class="mb-4">
           <h2 class="text-lg leading-6 font-medium text-gray-900">
             {$_("registrars_route.namecheap_settings")}
@@ -170,64 +164,65 @@
         </div>
       </div>
     </div>
-  </div>
-  <div class="max-w-7xl mx-auto px-4 mt-6 text-sm text-gray-400">
-    <p>{$_("registrars_route.security_message_one")}
-      <a href="https://en.wikipedia.org/wiki/Block_cipher_mode_of_operation" class="text-steel-400">aes-256-cbc</a>
-      {$_("registrars_route.security_message_two")}</p>
-    <p class="mt-2">{$_("registrars_route.security_message_three")}</p>
-  </div>
-{/if}
-
-
-<Modal show={showModal}>
-  <div class="text-center">
-    <h3 class="text-lg leading-6 font-medium text-gray-900">
-      {$_("saving_changes")}
-    </h3>
-    <div class="mt-2">
-      {#if isChecking}
-        <p class="text-sm text-gray-500">{$_("registrars_route.checking_message")}</p>
-      {:else if allRejected}
-        <div class="mt-2">
-          <Alert type="error">
-            <span slot="heading">{$_("critical_error")}</span>
-            <span slot="body">{$_("registrars_route.all_rejected_message")}</span>
-          </Alert>
-        </div>
-        <div class="mt-2 text-center">
-          <Button on:click={handleClose}>{$_("ok")}</Button>
-        </div>
-      {:else if checkRegistrarsResult}
-        {#if checkRegistrarsResult.acceptedClients && checkRegistrarsResult.acceptedClients.length > 0}
-          <Alert type="success">
-            <span slot="heading">{$_("accepted")}</span>
-            <div slot="body">
-              <ul>
-                {#each checkRegistrarsResult.acceptedClients as clientName}
-                  <li>{clientName}</li>
-                {/each}
-              </ul>
-            </div>
-          </Alert>
-        {/if}
-        {#if checkRegistrarsResult.failedClients && checkRegistrarsResult.failedClients.length > 0}
-          <Alert type="warning">
-            <span slot="heading">{$_("rejected")}</span>
-            <div slot="body">
-              <ul>
-                {#each checkRegistrarsResult.failedClients as clientName}
-                  <li>{clientName}</li>
-                {/each}
-              </ul>
-              <p class="mt-2">{$_("registrars_route.rejected_removal_message")}</p>
-            </div>
-          </Alert>
-        {/if}
-        <div class="mt-2 text-center">
-          <Button on:click={handleClose}>{$_("ok")}</Button>
-        </div>
-      {/if}
+    <div class="mt-4 text-sm text-gray-400">
+      <p>{$_("registrars_route.security_message_one")}
+        <a href="https://en.wikipedia.org/wiki/Block_cipher_mode_of_operation" class="text-steel-400">aes-256-cbc</a>
+        {$_("registrars_route.security_message_two")}</p>
+      <p class="mt-2">{$_("registrars_route.security_message_three")}</p>
     </div>
-  </div>
-</Modal>
+  {/if}
+
+
+  <Modal show={showModal}>
+    <div class="text-center">
+      <h3 class="text-lg leading-6 font-medium text-gray-900">
+        {$_("saving_changes")}
+      </h3>
+      <div class="mt-2">
+        {#if isChecking}
+          <p class="text-sm text-gray-500">{$_("registrars_route.checking_message")}</p>
+        {:else if allRejected}
+          <div class="mt-2">
+            <Alert type="error">
+              <span slot="heading">{$_("critical_error")}</span>
+              <span slot="body">{$_("registrars_route.all_rejected_message")}</span>
+            </Alert>
+          </div>
+          <div class="mt-2 text-center">
+            <Button on:click={handleClose}>{$_("ok")}</Button>
+          </div>
+        {:else if checkRegistrarsResult}
+          {#if checkRegistrarsResult.acceptedClients && checkRegistrarsResult.acceptedClients.length > 0}
+            <Alert type="success">
+              <span slot="heading">{$_("accepted")}</span>
+              <div slot="body">
+                <ul>
+                  {#each checkRegistrarsResult.acceptedClients as clientName}
+                    <li>{clientName}</li>
+                  {/each}
+                </ul>
+              </div>
+            </Alert>
+          {/if}
+          {#if checkRegistrarsResult.failedClients && checkRegistrarsResult.failedClients.length > 0}
+            <Alert type="warning">
+              <span slot="heading">{$_("rejected")}</span>
+              <div slot="body">
+                <ul>
+                  {#each checkRegistrarsResult.failedClients as clientName}
+                    <li>{clientName}</li>
+                  {/each}
+                </ul>
+                <p class="mt-2">{$_("registrars_route.rejected_removal_message")}</p>
+              </div>
+            </Alert>
+          {/if}
+          <div class="mt-2 text-center">
+            <Button on:click={handleClose}>{$_("ok")}</Button>
+          </div>
+        {/if}
+      </div>
+    </div>
+  </Modal>
+</Layout>
+

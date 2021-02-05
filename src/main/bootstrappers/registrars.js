@@ -1,4 +1,4 @@
-import GoDaddyClient from "../clients/godaddyApiClient";
+import GoDaddyClient from "../clients/godaddyClient";
 import { ipcMain } from "electron";
 import { mainFileStore } from "../mainFileStore";
 
@@ -57,7 +57,7 @@ export default function () {
    * Queries all registrar endpoints for getDomains. All clients must implement
    * the same getDomains method. Yes I know, we should use TypeScript but sadly electron-snowpack
    * doesn't support it yet, and that helped to save me a lot of time when setting up snowpack
-   * with Electron initially, to help me get this project of the ground.
+   * with Electron initially.
    */
   ipcMain.handle("get-all-domains", async () => {
     const registrarSettings = mainFileStore.get("registrarSettings");
@@ -67,8 +67,6 @@ export default function () {
       registrarSettings.gdApiKey !== "" &&
       registrarSettings.gdSecret !== ""
     ) {
-      // TODO: Architect a better solution than having to set keys everytime.. this does ensure that we're using the most up to date
-      // registrar settings for every request though.. although the keys should rarely ever change.
       goDaddyClient.setKeys(
         registrarSettings.gdApiKey,
         registrarSettings.gdSecret

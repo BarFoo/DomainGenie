@@ -1,3 +1,11 @@
+<script>
+
+  import { registrarService } from "../stores";
+
+  // Router params, which contains the domain name to show here
+  export let params;
+</script>
+
 <div class="max-w-7xl mx-auto px-4">
   <h1 class="text-2xl font-semibold text-gray-900 mb-4">Domain</h1>
   <p>This will be the domain page.</p>

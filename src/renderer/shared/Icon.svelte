@@ -2,6 +2,8 @@
   export let name: string;
   export let width: string = "1rem";
   export let height: string = "1rem";
+  export let hidden: boolean = false;
+
   let icons = [
     {
       box: 24,
@@ -62,6 +64,16 @@
       box: 24,
       name: "search",
       svg: `<path fill="none" d="M0 0h24v24H0z"/><path d="M18.031 16.617l4.283 4.282-1.415 1.415-4.282-4.283A8.96 8.96 0 0 1 11 20c-4.968 0-9-4.032-9-9s4.032-9 9-9 9 4.032 9 9a8.96 8.96 0 0 1-1.969 5.617zm-2.006-.742A6.977 6.977 0 0 0 18 11c0-3.868-3.133-7-7-7-3.868 0-7 3.132-7 7 0 3.867 3.132 7 7 7a6.977 6.977 0 0 0 4.875-1.975l.15-.15z"/>`
+    },
+    {
+      box: 24,
+      name: "checkbox-multiple",
+      svg: `<path fill="none" d="M0 0h24v24H0z"/><path d="M7 7V3a1 1 0 0 1 1-1h13a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-4v3.993c0 .556-.449 1.007-1.007 1.007H3.007A1.006 1.006 0 0 1 2 20.993l.003-12.986C2.003 7.451 2.452 7 3.01 7H7zm2 0h6.993C16.549 7 17 7.449 17 8.007V15h3V4H9v3zm6 2H4.003L4 20h11V9zm-6.497 9l-3.536-3.536 1.414-1.414 2.122 2.122 4.242-4.243 1.414 1.414L8.503 18z"/>`
+    },
+    {
+      box: 24,
+      name: "command",
+      svg: `<path fill="none" d="M0 0h24v24H0z"/><path d="M10 8h4V6.5a3.5 3.5 0 1 1 3.5 3.5H16v4h1.5a3.5 3.5 0 1 1-3.5 3.5V16h-4v1.5A3.5 3.5 0 1 1 6.5 14H8v-4H6.5A3.5 3.5 0 1 1 10 6.5V8zM8 8V6.5A1.5 1.5 0 1 0 6.5 8H8zm0 8H6.5A1.5 1.5 0 1 0 8 17.5V16zm8-8h1.5A1.5 1.5 0 1 0 16 6.5V8zm0 8v1.5a1.5 1.5 0 1 0 1.5-1.5H16zm-6-6v4h4v-4h-4z"/>`
     }
   ];
   let displayIcon = icons.find((e) => e.name === name);
@@ -69,6 +81,7 @@
 
 <svg
     class={$$props.class}
+    class:hidden
     focusable="false"
     {width}
     {height}

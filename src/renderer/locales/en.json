@@ -56,9 +56,13 @@
   "descending": "Descending (z-a)",
   "ascending": "Ascending (a-z)",
   "registered": "Registered",
+  "domains_tooltip": "View all of your domains",
+  "registrars_tooltip": "Configure registrar settings",
+  "settings_tooltip": "Configure general settings",
+  "enable_selection": "Enable Selection",
+  "disable_selection": "Disable Selection",
 
   "domains_route": {
-    "pagination_text": "Showing {currentStartIndex} - {currentEndIndex} of {totalDomains} domains. Click on a domain to view more information.",
     "syncing": "Syncing Domains",
     "fetching": "We are fetching your domains from all your configured registrars.",
     "please_wait": "Please wait, this could take several minutes.",
@@ -71,7 +75,9 @@
     "requires_sync_message": "Please click on Synchronize to import your domains. You can synchronize whenever you like.",
     "rejected_clients_heading": "Rejected Clients",
     "rejected_clients_message": "The following clients failed to update, do you need to update your API keys?",
-    "no_results": "No results were found for your query"
+    "no_results": "No results were found for your query",
+    "total_domains_text": "{totalDomains} domains",
+    "checked_domains": "With {checkedDomains} selected"
   },
 
   "registrars_route": {
