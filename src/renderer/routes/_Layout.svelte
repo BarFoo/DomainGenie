@@ -9,9 +9,9 @@
 <div class="min-h-screen bg-gray-100">
   <div class="pb-32 bg-steel-700 text-white">
     <Navbar>
-      <NavbarItem iconName="domains" title={$_("domains_tooltip")} to="/domains">{$_("domains")}</NavbarItem>
-      <NavbarItem iconName="registrars" title={$_("registrars_tooltip")} to="/registrars">{$_("registrars")}</NavbarItem>
-      <NavbarItem iconName="settings" title={$_("settings_tooltip")} to="/settings">{$_("settings")}</NavbarItem>
+      <NavbarItem iconName="domains" title={$_("domains_tooltip")} to="/domains" activePath="/domains(.*)$">{$_("domains")}</NavbarItem>
+      <NavbarItem iconName="registrars" title={$_("registrars_tooltip")} to="/registrars" activePath="/registrars">{$_("registrars")}</NavbarItem>
+      <NavbarItem iconName="settings" title={$_("settings_tooltip")} to="/settings" activePath="/settings">{$_("settings")}</NavbarItem>
     </Navbar>
     <header class="py-6">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -26,7 +26,7 @@
   </div>
   <main class="-mt-32">
     <div class="max-w-7xl mx-auto pb-12 px-4 sm:px-6 lg:px-8">
-      <div class="bg-white rounded-lg shadow px-5 py-6 main-container">
+      <div class="bg-white rounded-lg shadow main-container flex flex-col text-gray-500">
         <slot></slot>
       </div>
     </div>

@@ -7,10 +7,11 @@
 	// read-only, but visible to consumers via bind:start
 	export let start = 0;
 	export let end = 0;
+	// To bind to the viewport so scroll position can be saved
 	// local state
+	let viewport;
 	let height_map = [];
 	let rows;
-	let viewport;
 	let contents;
 	let viewport_height = 0;
 	let visible;
@@ -124,17 +125,20 @@
 		// rows would occupy we may need to add some
 		// more. maybe we can just call handle_scroll again?
 	}
+
 	// trigger initial refresh
 	onMount(() => {
 		rows = contents.getElementsByTagName('svelte-virtual-list-row');
 		mounted = true;
 	});
+
 </script>
 
 <style>
 	svelte-virtual-list-viewport {
 		position: relative;
-		overflow-y: auto;
+		overflow-y: scroll;
+		overflow-x: auto;
 		-webkit-overflow-scrolling:touch;
 		display: block;
 	}

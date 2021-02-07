@@ -10,14 +10,17 @@
   import Settings from "./routes/Settings.svelte";
   import MarketplaceSettings from "./routes/MarketplaceSettings.svelte";
   import Home from "./routes/Home.svelte";
+  import NotFound from "./routes/NotFound.svelte";
 
   const routes = {
     "/": Home,
     "/domains": Domains,
-    "/domains/:id": Domain,
+    "/domains/:name": Domain,
+    "/domains/:name/*": Domain,
     "/registrars": RegistrarSettings,
     "/settings": Settings,
-    "/marketplaces": MarketplaceSettings
+    "/marketplaces": MarketplaceSettings,
+    "*": NotFound
   };
 
   function handleExternalLinks(evt) {
@@ -42,3 +45,22 @@
 <EnterPassword />
 
 <Router {routes} />
+
+<style global>
+  :global(html), :global(body) {
+    @apply bg-gray-100;
+    height: 100%;
+    min-height: 100%;
+    box-sizing: border-box;
+    margin: 0;
+  }
+
+  :global(a.active) {
+    @apply bg-steel-800;
+    @apply text-white;
+  }
+
+  a {
+    @apply text-steel-600;
+  }
+</style>

@@ -3,7 +3,7 @@ import { AppDatabase } from "./database/appDatabase";
 import FileStoreService from "./services/fileStoreService";
 import RegistrarService from "./services/registrarService";
 
-export const screenLocked = writable(false);
+export const encryptionKey = writable(null);
 export const fileStoreService = readable<FileStoreService>(null, (set) =>
   set(new FileStoreService())
 );

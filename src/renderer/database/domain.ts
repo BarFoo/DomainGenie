@@ -1,4 +1,5 @@
 export interface Domain {
+  id: number;
   domainName: string;
   registrar?: string;
   contactAdmin?: Contact;

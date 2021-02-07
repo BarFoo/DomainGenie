@@ -3,7 +3,6 @@
    * @todo Improve error handling of the file store initialization
    */
   import { onMount, tick } from "svelte";
-  import { screenLocked } from "./stores";
   import { push } from "svelte-spa-router";
   import { _ } from "svelte-i18n";
   import Button from "./shared/Button.svelte";
@@ -29,10 +28,6 @@
   let currentPasswordStrength;
 
   $: {
-    if($screenLocked) {
-      showModal = true;
-    }
-
     if(password) {
       currentPasswordStrength = checkPasswordStrength(password);
     }
@@ -74,7 +69,6 @@
         } else {
           window.localStorage.setItem("hasCreatedPassword", "1");
           showModal = false;
-          $screenLocked = false;
           hasCreatedPassword = true;
           push("/registrars");
         }
@@ -97,7 +91,6 @@
           passwordErrors = [...passwordErrors];
         } else {
           showModal = false;
-          $screenLocked = false;
           push("/domains");
         }
       });
@@ -112,7 +105,6 @@
    */
   function handleWindowKeydown(e) {
     if(e.ctrlKey && e.key === "l" && hasCreatedPassword && !showModal) {
-      $screenLocked = true;
       showModal = true;
       push("/");
 
@@ -134,10 +126,8 @@
 
 <Modal show={showModal}>
   <div>
-    <h3 class="text-2xl leading-6 font-medium text-gray-900">
-      {#if $screenLocked}
-        {$_("screen_locked")}
-      {:else if hasCreatedPassword} 
+    <h3 class="text-2xl leading-6 font-medium">
+      {#if hasCreatedPassword} 
         {$_("enter_password")}
       {:else}
         {$_("create_password")}
@@ -164,7 +154,8 @@
         <div class="mt-4">
           <input type="password" class="block mb-2 w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-gray-600 focus:border-gray-600" 
                 placeholder={$_("password")} bind:value={password} bind:this={passwordInputRef} />
-          <input type="password" class="block mb-4 w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-gray-600 focus:border-gray-600" 
+          <input type="password" class="block mb-4 w-full border border-gray-300
+           rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-gray-600 focus:border-gray-600" 
                 placeholder={$_("confirm_password")} bind:value={confirmPassword}  />
           <div class="flex">
             <div class="flex-1">
@@ -182,9 +173,10 @@
           </div>
         </div>
       {:else}
-          <input type="password" class="block mb-2 w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-gray-600 focus:border-gray-600" 
+          <input type="password" class="block mb-2 w-full border border-gray-300 
+          rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-gray-600 focus:border-gray-600" 
                 on:keyup={checkExistingPassword} bind:this={passwordInputRef} />
-          <p class="text-sm text-gray-500">{$_("password_press_enter")}</p>
+          <p class="text-sm text-gray-400">{$_("password_press_enter")}</p>
       {/if}
     </div>
   </div>

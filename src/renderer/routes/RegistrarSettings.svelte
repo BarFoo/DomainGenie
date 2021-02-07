@@ -96,14 +96,14 @@ import Layout from "./_Layout.svelte";
   {#if isLoading}
     <p>{$_("registrars_route.loading_settings")}</p>
   {:else}
-    <div class="flex flex-col divide-y divide-gray-200 text-steel-800 space-y-8">
+    <div class="flex flex-col divide-y divide-gray-200 space-y-8 px-5 py-6">
       <div>
-        <h2 class="text-lg leading-6 font-medium text-gray-900">
+        <h2 class="text-lg leading-6 font-medium">
             {$_("registrars_route.godaddy_settings")}
         </h2>
-        <p class="mt-1 text-sm text-gray-500">
+        <p class="mt-1 text-sm">
           {$_("registrars_route.godaddy_key_message_one")}
-          <a href="https://developer.godaddy.com/keys" class="text-steel-900 external">https://developer.godaddy.com/keys</a>. 
+          <a href="https://developer.godaddy.com/keys" class="external">https://developer.godaddy.com/keys</a>. 
           {$_("registrars_route.godaddy_key_message_two")}.
         </p>
 
@@ -119,12 +119,12 @@ import Layout from "./_Layout.svelte";
       
       <div class="pt-6">
         <div class="mb-4">
-          <h2 class="text-lg leading-6 font-medium text-gray-900">
+          <h2 class="text-lg leading-6 font-medium">
             {$_("registrars_route.dynadot_settings")}
           </h2>
-          <p class="mt-1 text-sm text-gray-500">
+          <p class="mt-1 text-sm">
             {$_("registrars_route.dynadot_key_message")}
-            <a href="https://www.dynadot.com/account/domain/setting/api.html" class="text-steel-900 external">https://www.dynadot.com/account/domain/setting/api.html</a> 
+            <a href="https://www.dynadot.com/account/domain/setting/api.html" class="external">https://www.dynadot.com/account/domain/setting/api.html</a> 
           </p>
         </div>
         <TextField name="dynadotAPIKey" label="API Key" bind:value={settings.dynadotApiKey} />
@@ -132,12 +132,12 @@ import Layout from "./_Layout.svelte";
 
       <div class="pt-6">
         <div class="mb-4">
-          <h2 class="text-lg leading-6 font-medium text-gray-900">
+          <h2 class="text-lg leading-6 font-medium">
             {$_("registrars_route.namesilo_settings")}
           </h2>
-          <p class="mt-1 text-sm text-gray-500">
+          <p class="mt-1 text-sm">
             {$_("registrars_route.namesilo_key_message")}
-            <a href="https://www.namesilo.com/account/api-manager" class="text-steel-900 external">https://www.namesilo.com/account/api-manager</a>. 
+            <a href="https://www.namesilo.com/account/api-manager" class="external">https://www.namesilo.com/account/api-manager</a>. 
           </p>
         </div>
         <TextField name="namesiloAPIKey" label="API Key" bind:value={settings.nameSiloApiKey} />
@@ -145,12 +145,12 @@ import Layout from "./_Layout.svelte";
         
       <div class="pt-6">
         <div class="mb-4">
-          <h2 class="text-lg leading-6 font-medium text-gray-900">
+          <h2 class="text-lg leading-6 font-medium">
             {$_("registrars_route.namecheap_settings")}
           </h2>
-          <p class="mt-1 text-sm text-gray-500">
+          <p class="mt-1 text-sm">
             {$_("registrars_route.namecheap_key_message_one")}
-            <a href="https://ap.www.namecheap.com/settings/tools" class="text-steel-900 external">https://ap.www.namecheap.com/settings/tools</a>.
+            <a href="https://ap.www.namecheap.com/settings/tools" class="external">https://ap.www.namecheap.com/settings/tools</a>.
             {$_("registrars_route.namecheap_key_message_two")}
           </p>
         </div>
@@ -164,9 +164,9 @@ import Layout from "./_Layout.svelte";
         </div>
       </div>
     </div>
-    <div class="mt-4 text-sm text-gray-400">
+    <div class="text-xs text-gray-400 px-5">
       <p>{$_("registrars_route.security_message_one")}
-        <a href="https://en.wikipedia.org/wiki/Block_cipher_mode_of_operation" class="text-steel-400">aes-256-cbc</a>
+        <a href="https://en.wikipedia.org/wiki/Block_cipher_mode_of_operation" class="external">aes-256-cbc</a>
         {$_("registrars_route.security_message_two")}</p>
       <p class="mt-2">{$_("registrars_route.security_message_three")}</p>
     </div>

@@ -5,7 +5,7 @@
 </script>
 
 <label for="checkbox" class="flex justify-start relative items-start">
-  <div class="bg-white border-2 border-gray-300 flex flex-shrink-0 justify-center items-center focus-within:border-steel-500"
+  <div class="bg-white border-2 border-gray-300 flex flex-shrink-0 justify-center items-center"
     class:mr-2={$$slots.default}
     class:w-5={size === "default"}
     class:h-5={size === "default"}

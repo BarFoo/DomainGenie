@@ -4,4 +4,5 @@ export interface ColumnDefinition {
   formatter?: Function;
   hasEmphasis?: boolean;
   hasLight?: boolean;
+  width?: number;
 }

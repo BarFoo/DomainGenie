@@ -7,7 +7,7 @@
 </script>
 
 <div class="text-gray-500" class:relative={showIcon}>
-  <input class="border border-gray-300 w-full bg-white py-1.5 px-2 pr-16 rounded-lg text-sm focus:outline-none focus:ring-gray-600 focus:border-gray-600"
+  <input class="border border-gray-300 w-full py-1.5 px-2 pr-16 rounded-lg text-sm focus:outline-none focus:ring-gray-600 focus:border-gray-600"
     type="search" {placeholder} bind:value />
   {#if showIcon}
     <button class="absolute right-0 top-0 mt-2.5 mr-4">

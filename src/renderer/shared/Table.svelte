@@ -14,9 +14,6 @@
   // Whether check all is checked (the header check all, which selects all items)
   export let isCheckAll: boolean = false;
 
-  // A reference for tbody, so we can scroll back to the top when needed
-  let tbodyRef: HTMLElement;
-
   export let checkedIndexes: Number[] = [];
 
   function handleRowClicked(index: number) {
@@ -57,69 +54,72 @@
       checkedIndexes = [];
     }
   }
+
+  /* Yes this is not a true table. tbody's do not work well with the virtual list 
+     and besides you'd have to change the display of those to flex anyway to get
+     scrolling on the tbody */
 </script>
 
-<div class="border border-gray-200 flex flex-col divide-y divide-gray-200 min-w-full">
-  <div class="bg-gray-50">
-    <div class="flex heading">
+<div class="border border-gray-200 flex flex-col flex-grow divide-y divide-gray-200">
+  <div class="bg-gray-50 flex-shrink-0">
+    <div class="flex heading text-gray-500">
       {#if checkable}
-        <th scope="col" class="px-6 py-3 w-2" title="Checks all matching domains">
+        <div class="px-6 py-3 w-2">
           <Checkbox bind:checked={isCheckAll} on:change={handleCheckAll} size="small" />
-        </th>
+        </div>
       {/if}
       {#each cols as col}
-        <th scope="col" style="flex-basis: {100 / cols.length}%"
-          class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-          on:click|self={() => handleHeaderClick(col)}>{col.headerText}</th>
+        <div style="flex-basis: {col.width ? col.width : 100 / cols.length}%"
+          class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider"
+          on:click|self={() => handleHeaderClick(col)}>{col.headerText}</div>
       {/each}
     </div>
   </div>
-  <div class="bg-white w-full table-body divide-y divide-gray-200"
-    bind:this={tbodyRef}>
-      <VirtualList
-        {items} let:item let:index>
-          <div 
-            class="flex w-full border-b border-gray-200"
-            class:cursor-pointer={isRowClickable}
-            class:hover:bg-gray-50={isRowClickable && checkedIndexes.indexOf(index) === -1}
-            class:bg-steel-100={checkedIndexes.indexOf(index) >= 0}
-            class:border-none={index === items.length - 1}>
-              {#if checkable}
-                <div class="px-6 py-4 w-2 max-w-xs">
-                    <Checkbox forceChecked={checkedIndexes.indexOf(index) >= 0} on:change={(e) => handleRowChecked(index)} size="small" />
-                  </div>
-              {/if}
-              {#each cols as col}
-                <div 
-                  class="px-6 py-4 whitespace-nowrap text-sm text-gray-900" 
-                  on:click|self={(e) => handleRowClicked(index)}
-                  class:font-medium={col.hasEmphasis}
-                  class:font-light={col.hasLight}
-                  style="flex-basis: {100 / cols.length}%;">
-                  {#if col.formatter}
-                    {col.formatter(item[col.key])}
-                  {:else}
-                    {items[index][col.key]}
-                  {/if}
-                </div>
-              {/each}
+  <div class="flex-grow h-px">
+    <VirtualList 
+        {items}
+        let:index
+        let:item
+    >
+      <div 
+        class="flex w-full border-b border-gray-200"
+        class:cursor-pointer={isRowClickable}
+        class:hover:bg-gray-50={isRowClickable && checkedIndexes.indexOf(index) === -1}
+        class:bg-steel-50={checkedIndexes.indexOf(index) >= 0}
+        class:border-none={index === items.length - 1}>
+          {#if checkable}
+            <div class="px-6 py-4 w-2 max-w-xs">
+                <Checkbox forceChecked={checkedIndexes.indexOf(index) >= 0} on:change={(e) => handleRowChecked(index)} size="small" />
               </div>
-      </VirtualList>
+          {/if}
+          {#each cols as col}
+            <div 
+              class="px-6 py-4 whitespace-nowrap text-sm" 
+              on:click|self={(e) => handleRowClicked(index)}
+              class:font-medium={col.hasEmphasis}
+              class:font-light={col.hasLight}
+              style="flex-basis: {col.width ? col.width : 100 / cols.length}%;">
+              {#if col.formatter}
+                {col.formatter(item[col.key])}
+              {:else}
+                {item[col.key]}
+              {/if}
+            </div>
+          {/each}
+      </div>
+    </VirtualList>
   </div>
   {#if $$slots.footer}
-    <div class="px-6 py-3 bg-gray-50">
+    <div class="px-6 py-3 bg-gray-50 flex-shrink-0 mt-auto">
       <slot name="footer" />
     </div>
   {/if}
 </div>
 
+
 <style>
   .heading {
-    /* This must always equal the scrollbar width, which is 8px atm */
-    padding-right: 7px;
-  }
-  .table-body {
-    /* Accomodate for header, table footer etc */
-    height: calc(100vh - 360px);
+    /* This perhaps looks odd, but this allows the header to line up with the scrollbar body. */
+    max-width: 98%;
   }
 </style>
