@@ -26,7 +26,7 @@
   function handleExternalLinks(evt) {
     if(evt.target.tagName === "A" && evt.target.classList.contains("external")) {
       evt.preventDefault();
-      window.electronApi.openExternal(evt.target.href);
+      window.electronApi.openExternalLink(evt.target.href);
     }
   }
 
@@ -39,6 +39,7 @@
   });
 
 </script>
+
 <TailwindCSS />
 <svelte:window on:click={handleExternalLinks} />
 
@@ -61,6 +62,6 @@
   }
 
   a {
-    @apply text-steel-600;
+    @apply text-steel-700;
   }
 </style>

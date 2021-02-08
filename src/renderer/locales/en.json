@@ -55,6 +55,8 @@
   "order_by": "Order By",
   "descending": "Descending (z-a)",
   "ascending": "Ascending (a-z)",
+  "oldest_to_recent": "Oldest to recent",
+  "recent_to_oldest": "Recent to oldest",
   "registered": "Registered",
   "domains_tooltip": "View all of your domains",
   "registrars_tooltip": "Configure registrar settings",
@@ -63,13 +65,20 @@
   "disable_selection": "Disable Selection",
   "back_to_domains": "Back to domains",
   "contacts": "Contacts",
-
+  "not_found": "Not Found",
+  "not_found_message": "The domain you were looking for has been removed. If you found this page in error let us know.",
   "edit_name_servers_title": "Edit Name Servers",
   "edit_name_servers_description": "Edit name server records e.g. ns1.example.com",
   "edit_contacts_title": "Edit Contacts",
   "edit_contacts_description": "Edit the registrant, admin, billing and tech contacts",
   "export_to_csv_title": "Export",
   "export_to_csv_description": "Export domains to a CSV file",
+  "name_server_label": "Name Server {index}",
+  "name_server_description": "Edit NS records e.g. ns1.example.com.",
+  "add_name_server": "Add Name Server",
+  "saving": "Saving",
+  "privacy": "Privacy",
+  "auto_renewal": "Auto Renewal",
 
   "domains_route": {
     "syncing": "Syncing Domains",
@@ -107,6 +116,6 @@
     "namecheap_key_message_two": "Scroll down to Business & Dev Tools and follow the instructions.",
     "checking_message": "Please wait, checking registrar settings.",
     "all_rejected_message": "All registrar API keys have failed. Please check them and try again.",
-    "rejected_removal_message": "All rejected API keys have been removed. Please check and enter them again."
+    "rejected_removal_message": "Your registrar account may have IP access restrictions"
   }
 }

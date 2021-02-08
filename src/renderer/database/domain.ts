@@ -15,6 +15,7 @@ export interface Domain {
   hasAutoRenewal?: boolean;
   hasPrivacy?: boolean;
   isRenewable?: boolean;
+  additionalData?: any[];
 }
 
 /* Contact isn't its own table (hence why it is in this file), it only ever lives on Domain, 

@@ -10,7 +10,7 @@
   use:link
   use:active 
   class="side-menu-item border-transparent hover:bg-gray-50 hover:text-gray-900 text-gray-400 group border-l-4 px-5 py-2 flex 
-          items-center text-sm font-medium" aria-current="page">
+          items-center text-sm font-medium">
   <Icon class="fill-current flex-shrink-0 -ml-1 mr-3 h-6 w-6" name={iconName} />
   <span class="truncate">
     <slot></slot>

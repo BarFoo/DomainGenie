@@ -7,7 +7,7 @@ module.exports = {
   mount: {
     /* ... */
   },
-  plugins: ["@snowpack/plugin-svelte", "@snowpack/plugin-postcss"],
+  plugins: ["@snowpack/plugin-svelte"],
   packageOptions: {
     /* ... */
   },

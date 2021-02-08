@@ -1,0 +1,13 @@
+
+=== GODADDY ===
+
+- GoDaddy have the best API and return everything we need.. though it is limited to 1000 max domains per response.
+
+- To get around the 1000 max domain limit with GoDaddy we make repeated requests at x interval. During my testing this has worked
+  surprisingly well. Sadly the OTE environment (sandbox/dev) is no longer online, and so testing it atm is difficult.
+
+=== DYNADOT ===
+
+- Dynadot also does not return contact information on domain list command. Have to get this separately.
+
+- Dynadot API may require IP address to be set, if check fails inform the user of this.

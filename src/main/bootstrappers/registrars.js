@@ -1,9 +1,9 @@
-import GoDaddyClient from "../clients/godaddyClient";
 import { ipcMain } from "electron";
 import { mainFileStore } from "../mainFileStore";
+import GoDaddyClient from "../clients/godaddyClient";
+import DynadotClient from "../clients/dynadotClient";
 
 const log = require("electron-log");
-const goDaddyClient = new GoDaddyClient();
 
 export default function () {
   /**
@@ -11,9 +11,9 @@ export default function () {
    * are valid.
    */
   ipcMain.handle("check-registrars", async (evt, registrarSettings) => {
-    log.debug("check-registrars received registrarSettings");
     const gdApiKey = registrarSettings.gdApiKey;
     const gdSecret = registrarSettings.gdSecret;
+    const dynadotApiKey = registrarSettings.dynadotApiKey;
     let result = {
       totalChecked: 0,
       acceptedClients: [],
@@ -22,16 +22,15 @@ export default function () {
 
     const doCheck = async (client) => {
       const name = client.getName();
-      log.debug(`Checking ${name} API keys are valid`);
       try {
         result.totalChecked++;
         await client.check();
         result.acceptedClients.push(name);
-        log.debug(`${name} has correct API keys`);
       } catch (ex) {
-        log.debug(
-          `${name} API keys are invalid or GoDaddy returned an unexpected response`
+        log.error(
+          `${name} api keys are invalid or returned an unexpected response`
         );
+        log.error(ex);
         result.failedClients.push(name);
       }
     };
@@ -42,12 +41,20 @@ export default function () {
       gdSecret &&
       gdSecret.trim() !== ""
     ) {
-      goDaddyClient.setKeys(
-        registrarSettings.gdApiKey,
-        registrarSettings.gdSecret
-      );
+      const goDaddyClient = new GoDaddyClient({
+        apiKey: gdApiKey,
+        secret: gdSecret,
+      });
 
       await doCheck(goDaddyClient);
+    }
+
+    if (dynadotApiKey && dynadotApiKey.trim() !== "") {
+      const dynadotClient = new DynadotClient({
+        apiKey: dynadotApiKey,
+      });
+
+      await doCheck(dynadotClient);
     }
 
     return result;
@@ -67,11 +74,22 @@ export default function () {
       registrarSettings.gdApiKey !== "" &&
       registrarSettings.gdSecret !== ""
     ) {
-      goDaddyClient.setKeys(
-        registrarSettings.gdApiKey,
-        registrarSettings.gdSecret
-      );
+      const goDaddyClient = new GoDaddyClient({
+        apiKey: registrarSettings.gdApiKey,
+        secret: registrarSettings.gdSecret,
+      });
       clientsToCall.push(goDaddyClient);
+    }
+
+    if (
+      registrarSettings.dynadotApiKey &&
+      registrarSettings.dynadotApiKey.trim() !== ""
+    ) {
+      const dynadotClient = new DynadotClient({
+        apiKey: registrarSettings.dynadotApiKey,
+      });
+
+      clientsToCall.push(dynadotClient);
     }
 
     const promises = [];

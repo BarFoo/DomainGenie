@@ -1,33 +1,34 @@
 <script lang="ts">
-  /* @todo Possibly add a loader, but with it being all local its insanely fast */
   import { onMount } from "svelte";
   import { _ } from "svelte-i18n";
-  import Router, { link, push } from "svelte-spa-router";
+  import Router, { link } from "svelte-spa-router";
   import Icon from "../shared/Icon.svelte";
   import SideMenuItem from "../shared/SideMenuItem.svelte";
-  import { registrarService, appDatabase } from "../stores";
+  import { appDatabase, singleDomainEdit } from "../stores";
+  import DomainAutoRenewal from "./DomainAutoRenewal.svelte";
   import DomainContacts from "./DomainContacts.svelte"; 
   import DomainNameServers from "./DomainNameServers.svelte";
+  import DomainPrivacy from "./DomainPrivacy.svelte";
   import Layout from "./_Layout.svelte";
-
-  const routes = {
-    "/": DomainNameServers,
-    "/contacts": DomainContacts
-  };
 
   // Route params, which contains the domain name to show here
   export let params;
 
+  const routes = {
+    "/": DomainNameServers,
+    "/contacts": DomainContacts,
+    "/auto-renewal": DomainAutoRenewal,
+    "/privacy": DomainPrivacy
+  };
+
+  let isLoading: boolean = true;
   let domain;
 
   onMount(async () => {
     domain = await $appDatabase.domains.get(params.name);
+    isLoading = false;
 
-    if(domain == null) {
-      // This is unlikely to happen, but just in case the user is viewing an old list..
-      push("/domains");
-      return;
-    }
+    $singleDomainEdit = domain;
   });
 
 </script>
@@ -39,18 +40,27 @@
       {$_("back_to_domains")}
     </a>
   </div>
-  <div class="divide-gray-200 flex flex-row flex-grow divide-x">
-    <aside class="domain-menu py-6">
-      <nav>
-        <SideMenuItem href={`/domains/${params.id}`} iconName="server">{$_("name_servers")}</SideMenuItem>
-        <SideMenuItem href={`/domains/${params.id}/contacts`} iconName="contacts">{$_("contacts")}</SideMenuItem>
-      </nav>
-    </aside>
+  {#if !isLoading && domain == null}
+    <div class="py-6 px-5">
+      <h2>{$_("not_found")}</h2>
+      <p>{$_("not_found_message")}</p>
+    </div>
+  {:else if !isLoading}
+    <div class="divide-gray-200 flex flex-grow divide-x">
+      <aside class="domain-menu py-6">
+        <nav>
+          <SideMenuItem href={`/domains/${params.name}`} iconName="server">{$_("name_servers")}</SideMenuItem>
+          <SideMenuItem href={`/domains/${params.name}/contacts`} iconName="contacts">{$_("contacts")}</SideMenuItem>
+          <SideMenuItem href={`/domains/${params.name}/auto-renewal`} iconName="restart">{$_("auto_renewal")}</SideMenuItem>
+          <SideMenuItem href={`/domains/${params.name}/privacy`} iconName="shield">{$_("privacy")}</SideMenuItem>
+        </nav>
+      </aside>
 
-    <form class="divide-y divide-gray-200 col-span-9">
-      <Router {routes} prefix={/^\/domains\/[a-z\.]+/} />
-    </form>
-  </div>
+      <div class="col-span-9 flex-grow px-5 py-6">
+        <Router {routes} prefix={/^\/domains\/[a-zA-Z\.]+/} />
+      </div>
+    </div>
+  {/if}
 </Layout>
 
 <style>

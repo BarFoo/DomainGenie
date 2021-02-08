@@ -94,7 +94,7 @@
           {/if}
           {#each cols as col}
             <div 
-              class="px-6 py-4 whitespace-nowrap text-sm" 
+              class="px-6 py-4 whitespace-nowrap text-sm truncate" 
               on:click|self={(e) => handleRowClicked(index)}
               class:font-medium={col.hasEmphasis}
               class:font-light={col.hasLight}

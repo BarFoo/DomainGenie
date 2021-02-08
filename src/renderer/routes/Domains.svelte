@@ -129,7 +129,6 @@
     }
     
     domains = [...await mapFunction(domainOpts, (doc: Domain) => ({
-      id: doc.id,
       domainName: doc.domainName,
       registrationDate: doc.registrationDate,
       expiryDate: doc.expiryDate,
@@ -212,7 +211,7 @@
           isRowClickable={true} 
           bind:checkable
           bind:checkedIndexes
-          on:rowClick={(e) => push(`/domains/${e.detail.id}`)}>
+          on:rowClick={(e) => push(`/domains/${e.detail.domainName}`)}>
             <div class="flex" slot="footer">
               <div class="flex-grow flex gap-6">
                 <Button type="primary" bold={false} iconName="checkbox-multiple" on:click={toggleCheckable}>

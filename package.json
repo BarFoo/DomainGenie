@@ -47,6 +47,7 @@
     "electron-log": "^4.3.1",
     "electron-store": "^7.0.0",
     "svelte-i18n": "^3.3.0",
-    "svelte-spa-router": "^3.1.0"
+    "svelte-spa-router": "^3.1.0",
+    "xml-js": "^1.6.11"
   }
 }

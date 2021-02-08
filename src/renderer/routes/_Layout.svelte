@@ -3,7 +3,7 @@
   import NavbarItem from "../navbar/NavbarItem.svelte";
   import { _ } from "svelte-i18n";
 
-  export let heading;
+  export let heading: string;
 </script>
 
 <div class="min-h-screen bg-gray-100">
@@ -26,7 +26,7 @@
   </div>
   <main class="-mt-32">
     <div class="max-w-7xl mx-auto pb-12 px-4 sm:px-6 lg:px-8">
-      <div class="bg-white rounded-lg shadow main-container flex flex-col text-gray-500">
+      <div class="bg-white rounded-lg shadow main-container flex flex-col pb-6 text-gray-500">
         <slot></slot>
       </div>
     </div>

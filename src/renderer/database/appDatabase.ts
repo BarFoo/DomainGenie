@@ -2,7 +2,7 @@ import Dexie from "dexie";
 import type { Domain } from "./domain";
 
 export class AppDatabase extends Dexie {
-  domains: Dexie.Table<Domain, number>;
+  domains: Dexie.Table<Domain, string>;
 
   // Change this when adding new tables, indexes etc to the database in future
   // @todo: Explore alternative ways to handle version number
@@ -13,7 +13,6 @@ export class AppDatabase extends Dexie {
 
     this.version(AppDatabase.APP_DATABASE_VERSION).stores({
       domains: `
-        ++id, 
         &domainName, 
         registrar, 
         registrationDate,

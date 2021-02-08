@@ -8,7 +8,7 @@
   import Modal from "../shared/Modal.svelte";
   import Alert from "../shared/Alert.svelte";
   import { onMount } from "svelte";
-import Layout from "./_Layout.svelte";
+  import Layout from "./_Layout.svelte";
 
   let hasChanges: boolean = false;
   let settings: RegistrarSettings = {
@@ -19,7 +19,7 @@ import Layout from "./_Layout.svelte";
     namecheapKey: "",
     namecheapUser: ""
   };
-  let origSettings: RegistrarSettings = {...settings};
+  let origSettings: RegistrarSettings;
   let showModal: boolean = false;
   let allRejected: boolean = false;
   let isLoading: boolean = true;
@@ -31,7 +31,6 @@ import Layout from "./_Layout.svelte";
     // set when something changes and before we check. Then if something has changed we override it.
     // I know this looks funny, but this works like magic! :)
     if(settings && origSettings) {
-      hasChanges = false;
       Object.entries(settings).forEach(([key, value]) => {
         if(origSettings[key] !== settings[key]) {
           hasChanges = true;
@@ -83,7 +82,8 @@ import Layout from "./_Layout.svelte";
   }
 
   onMount(async () => {
-    settings = {...await $fileStoreService.get("registrarSettings", settings)}
+    settings = {...await $fileStoreService.get("registrarSettings", settings)};
+    origSettings = {...settings};
     isLoading = false;
   });
 

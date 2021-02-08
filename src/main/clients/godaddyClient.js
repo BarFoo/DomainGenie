@@ -1,7 +1,7 @@
 const axios = require("axios");
 
 class GoDaddyClient {
-  constructor() {
+  constructor(keys) {
     // The OTE environment appears to have completely gone offline. :\
     // const baseURL = "https://api.ote-godaddy.com/"
     const baseURL = "https://api.godaddy.com/v1/";
@@ -10,6 +10,8 @@ class GoDaddyClient {
     // Max GD limit domains.
     this.repeatTimeout = 1000;
     this.name = "GoDaddy";
+    this.apiKey = keys.apiKey;
+    this.secret = keys.secret;
 
     this.client = axios.create({
       baseURL,
@@ -18,6 +20,7 @@ class GoDaddyClient {
 
   getDomains() {
     const self = this;
+
     // GoDadddy limits requests to 1000 maximum domains. So we have to be clever, we have to repeat the request
     // until the amount returned is less than 1000 if we want to support importing say tens of thousands of domains.
     // We put a delay between each request so as to stop GoDaddy blocking us.
@@ -81,6 +84,10 @@ class GoDaddyClient {
     return this.client.get("domains/tlds", this.commonArgs());
   }
 
+  /**
+   * @access private
+   * @param {*} data
+   */
   parseDomains(data) {
     const domains = [];
     data.forEach((item) => {
@@ -89,6 +96,10 @@ class GoDaddyClient {
     return domains;
   }
 
+  /**
+   * @access private
+   * @param {*} data
+   */
   parseDomain(data) {
     if (data) {
       return {
@@ -143,10 +154,9 @@ class GoDaddyClient {
     return this.name;
   }
 
-  hasKeys() {
-    return this.apiKey !== undefined && this.secret !== undefined;
-  }
-
+  /**
+   * @access private
+   */
   commonArgs() {
     return {
       headers: {
@@ -154,11 +164,6 @@ class GoDaddyClient {
         Authorization: `sso-key ${this.apiKey}:${this.secret}`,
       },
     };
-  }
-
-  setKeys(apiKey, secret) {
-    this.apiKey = apiKey;
-    this.secret = secret;
   }
 }
 

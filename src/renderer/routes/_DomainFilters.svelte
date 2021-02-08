@@ -38,8 +38,13 @@
   </div>
   <div class="mt-4">
     <Dropdown bind:value={filters.isDescending}>
-      <option value={false}>{$_("ascending")}</option>
-      <option value={true}>{$_("descending")}</option>
+      {#if filters.orderBy === "domainName"}
+        <option value={false}>{$_("ascending")}</option>
+        <option value={true}>{$_("descending")}</option>
+      {:else}
+        <option value={false}>{$_("oldest_to_recent")}</option>
+        <option value={true}>{$_("recent_to_oldest")}</option>
+      {/if}
     </Dropdown>
   </div>
 </div>
