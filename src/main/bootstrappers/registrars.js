@@ -1,135 +1,77 @@
-import { ipcMain } from "electron";
+import { BrowserWindow, ipcMain, app } from "electron";
 import { mainFileStore } from "../mainFileStore";
-import GoDaddyClient from "../clients/godaddyClient";
-import DynadotClient from "../clients/dynadotClient";
-
 const log = require("electron-log");
+const path = require("path");
+const { fork } = require("child_process");
 
+/**
+ * Function encapsulating ipc main handles and registrar processes
+ * @param {BrowserWindow} The browser window send process responses to
+ */
 export default function () {
+  let checkRegistrarProcess;
+  let getAllDomainsProcess;
+
   /**
    * Responsible for checking registrars to determine if the given registrar settings
-   * are valid.
+   * are valid. This essentially calls the underlying registrar child process.
    */
-  ipcMain.handle("check-registrars", async (evt, registrarSettings) => {
-    const gdApiKey = registrarSettings.gdApiKey;
-    const gdSecret = registrarSettings.gdSecret;
-    const dynadotApiKey = registrarSettings.dynadotApiKey;
-    let result = {
-      totalChecked: 0,
-      acceptedClients: [],
-      failedClients: [],
-    };
+  ipcMain.on("checkRegistrars", (evt, registrarSettings) => {
+    // Lazily create the process if this is the first time we're running this
+    // @todo Why don't we only spawn this once per operation instead of keeping it running?
+    if (checkRegistrarProcess === undefined) {
+      checkRegistrarProcess = fork(
+        path.join(__dirname, "checkRegistrars.js"),
+        ["args"],
+        {
+          stdio: ["pipe", "pipe", "pipe", "ipc"],
+        }
+      );
 
-    const doCheck = async (client) => {
-      const name = client.getName();
-      try {
-        result.totalChecked++;
-        await client.check();
-        result.acceptedClients.push(name);
-      } catch (ex) {
-        log.error(
-          `${name} api keys are invalid or returned an unexpected response`
-        );
-        log.error(ex);
-        result.failedClients.push(name);
-      }
-    };
-
-    if (
-      gdApiKey &&
-      gdApiKey.trim() !== "" &&
-      gdSecret &&
-      gdSecret.trim() !== ""
-    ) {
-      const goDaddyClient = new GoDaddyClient({
-        apiKey: gdApiKey,
-        secret: gdSecret,
+      checkRegistrarProcess.on("message", (data) => {
+        evt.reply("checkedRegistrar", data);
       });
 
-      await doCheck(goDaddyClient);
+      log.debug("Setup checkRegistrarProcess");
     }
 
-    if (dynadotApiKey && dynadotApiKey.trim() !== "") {
-      const dynadotClient = new DynadotClient({
-        apiKey: dynadotApiKey,
-      });
-
-      await doCheck(dynadotClient);
-    }
-
-    return result;
+    // Pass off to the registrar child process, as this could take some time
+    checkRegistrarProcess.send(registrarSettings);
   });
 
   /**
-   * Queries all registrar endpoints for getDomains. All clients must implement
-   * the same getDomains method. Yes I know, we should use TypeScript but sadly electron-snowpack
-   * doesn't support it yet, and that helped to save me a lot of time when setting up snowpack
-   * with Electron initially.
+   * Perhaps a confusing name, this does get all domains from all registrars
+   * but doesn't immediately return them, or else the main thread could be blocked
+   * for a while. Renderer should listen in for the getAllDomainsCompleted
+   * channel to get the results of this operation.
    */
-  ipcMain.handle("get-all-domains", async () => {
-    const registrarSettings = mainFileStore.get("registrarSettings");
-    const clientsToCall = [];
-
-    if (
-      registrarSettings.gdApiKey !== "" &&
-      registrarSettings.gdSecret !== ""
-    ) {
-      const goDaddyClient = new GoDaddyClient({
-        apiKey: registrarSettings.gdApiKey,
-        secret: registrarSettings.gdSecret,
-      });
-      clientsToCall.push(goDaddyClient);
-    }
-
-    if (
-      registrarSettings.dynadotApiKey &&
-      registrarSettings.dynadotApiKey.trim() !== ""
-    ) {
-      const dynadotClient = new DynadotClient({
-        apiKey: registrarSettings.dynadotApiKey,
-      });
-
-      clientsToCall.push(dynadotClient);
-    }
-
-    const promises = [];
-
-    clientsToCall.forEach((client) => {
-      promises.push(client.getDomains());
-    });
-
-    return new Promise((resolution, rejection) => {
-      Promise.allSettled(promises).then((results) => {
-        let clientIndex = 0;
-        const resolutionResult = {
-          domains: [],
-          rejectedClients: [],
-        };
-        results.forEach((result) => {
-          // TODO: Log rejections / errors?
-          // result.value is the axios response
-          // Get the original client, which we can use for processing the response
-          // to get back a unified schema for persistance
-          const client = clientsToCall[clientIndex];
-          if (result.status !== "rejected") {
-            resolutionResult.domains = [
-              ...resolutionResult.domains,
-              ...result.value,
-            ];
-          } else {
-            resolutionResult.rejectedClients.push(client.getName());
-          }
-          clientIndex++;
-        });
-
-        // This means they all failed, so we must reject
-        if (resolutionResult.rejectedClients.length === clientsToCall.length) {
-          rejection("All failed");
-          return;
+  ipcMain.on("getAllDomains", (evt) => {
+    if (getAllDomainsProcess === undefined) {
+      getAllDomainsProcess = fork(
+        path.join(__dirname, "getAllDomains.js"),
+        ["args"],
+        {
+          stdio: ["pipe", "pipe", "pipe", "ipc"],
         }
+      );
 
-        resolution(resolutionResult);
+      getAllDomainsProcess.on("message", (data) => {
+        evt.reply("getAllDomainsCompleted", data);
       });
-    });
+
+      log.debug("Setup getAllDomainsProcess");
+    }
+
+    const registrarSettings = mainFileStore.get("registrarSettings");
+    // We have to pass a message in or else node will throw
+    // an error, even though this doesn't actually use any
+    // incoming message. Bit of an odd one this..
+    getAllDomainsProcess.send(registrarSettings);
+  });
+
+  // Kill the registrar related processes when the app is closed
+  app.on("window-all-closed", function () {
+    if (checkRegistrarProcess) checkRegistrarProcess.kill();
+    if (getAllDomainsProcess) getAllDomainsProcess.kill();
   });
 }

@@ -7,7 +7,7 @@
   import { onMount } from "svelte";
   import { _, date } from "svelte-i18n";
   import Button from "../shared/Button.svelte";
-  import { fileStoreService, appDatabase, registrarService } from "../stores";
+  import { fileStoreService, appDatabase, isSyncingDomains, registrarService, hasSyncCompleted } from "../stores";
   import { push } from "svelte-spa-router";
   import type { Domain } from "../database/domain";
   import Table from "../shared/Table.svelte";
@@ -17,43 +17,44 @@
   import FlyoutButton from "../shared/FlyoutButton.svelte";
   import DomainFilters from "./_DomainFilters.svelte";
   import FlyoutMenuItem from "../shared/FlyoutMenuItem.svelte";
-  import SyncDomains from "../shared/SyncDomains.svelte";
   import type { DomainFilters as DomainFitersInterface } from "../interfaces/domainFilters";
-  import { NameFilterType } from "../constants/nameFilterType";
+import Alert from "../shared/Alert.svelte";
 
   // Table column definitions
   const cols: ColumnDefinition[] = [
     {
       key: "domainName",
       headerText: $_("domain_name"),
-      width: 40
-    },
-    {
-      key: "registrar",
-      headerText: $_("registrar"),
-      hasLight: true,
-      width: 20,
+      width: 35,
     },
     {
       key: "registrationDate",
       headerText: $_("registered"),
-      formatter: (val) => $date(val, {format: "medium"}),
+      formatter: (val) => val ? $date(val, {format: "medium"}) : null,
       hasLight: true,
       width: 20,
     },
     {
       key: "expiryDate",
       headerText: $_("expires"),
-      formatter: (val) => $date(val, { format: "medium"}),
+      formatter: (val) => val ? $date(val, { format: "medium"}) : null,
       hasLight: true,
       width: 20
-    }
+    },
+    {
+      key: "nameServers",
+      headerText: $_("name_servers"),
+      hasLight: true,
+      width: 35,
+      formatter: (ns: string[]) => ns ? ns.filter(s => s).join("<br />") : null
+    },
   ];
 
   // Filter states
   const defaultFilters: DomainFitersInterface = {
     name: "",
-    nameType: NameFilterType.STARTS_WITH,
+    nameServer: "",
+    onlyShowEmptyNameServers: false,
     expires: 0,
     orderBy: "domainName",
     isDescending: false
@@ -67,23 +68,20 @@
   let domains: Domain[] = [];
   let isFirstLoad: boolean = true;
   let isLoadingDomains: boolean = false;
-  let hasRegistrarSettings = false;
 
-  // Whether the user needs to sync if no domains
+  // Whether sync is required, if so we will auto sync the first time
   let requiresSync: boolean = false;
 
   // Whether to make the domains table checkable
   let checkable: boolean = false;
   let checkedIndexes: Number[] = [];
 
-  // Whether to show the sync modal
-  let showSyncModal: boolean = false;
-
   $:{
     // State tracking for filters, to ensure we don't repeatedly call loadDomains over and over
     if(!isFirstLoad &&
       (filters.name !== lastFilters.name
-      || filters.nameType !== lastFilters.nameType
+      || filters.nameServer !== lastFilters.nameServer
+      || filters.onlyShowEmptyNameServers !== lastFilters.onlyShowEmptyNameServers
       || filters.orderBy !== lastFilters.orderBy 
       || filters.isDescending !== lastFilters.isDescending
       || filters.expires !== lastFilters.expires)) {
@@ -127,20 +125,42 @@
     if(filters.name && filters.name.trim() !== "") {
       domainOpts = domainOpts.and(d => d.domainName.indexOf(filters.name) >= 0);
     }
+
+    // @todo: Is this precedence correct? Should this not be OR operation?
+    if(filters.onlyShowEmptyNameServers) {
+      domainOpts = domainOpts.and(d => 
+        d.nameServers == null 
+        || d.nameServers.length === 0
+        || d.nameServers.filter(ns => ns == null).length === d.nameServers.length
+      );
+    } else if(filters.nameServer && filters.nameServer.trim() !== "") {
+      const ns = filters.nameServer.toLowerCase();
+      domainOpts = domainOpts.and(d => 
+        d.nameServers.filter(
+          ns => ns && ns.indexOf(filters.nameServer) >= 0
+        ).length > 0
+      );
+    }
     
-    domains = [...await mapFunction(domainOpts, (doc: Domain) => ({
-      domainName: doc.domainName,
-      registrationDate: doc.registrationDate,
-      expiryDate: doc.expiryDate,
-      registrar: doc.registrar
-    }))];
+    domains = [...await mapFunction(domainOpts, (doc: Domain) => {
+      const parsedDocs = {};
+      cols.forEach((col) => {
+        parsedDocs[col.key] = doc[col.key];
+      });
+      return parsedDocs;
+    })];
 
     isLoadingDomains = false;
   }
 
-  function onDomainsSynced() {
-    requiresSync = false;
-    loadDomains();
+  function handleSync() {
+    if($isSyncingDomains) {
+      return;
+    }
+    $isSyncingDomains = true;
+    // @todo Sort out this awful name, but what is a better alternative? 
+    // startSyncAllDomains()? triggerSyncAllDomains()?
+    $registrarService.getAllDomains();
   }
 
   function toggleCheckable() {
@@ -167,25 +187,34 @@
     const registrarSettings = await $fileStoreService.get("registrarSettings", null);
 
     if(registrarSettings === null) {
-      hasRegistrarSettings = false;
-      isFirstLoad = false;
       push("/registrars");
       return;
     }
-
-    hasRegistrarSettings = true;
 
     // Check if we have any domains at all
     await loadDomains();
 
     // If no domains come back on initial load it means they require sync
+    // so let's begin auto syncing
     if(domains.length === 0) {
       requiresSync = true;
+      handleSync();
+    } else {
+      requiresSync = false;
     }
 
-    // Marks first load as finished, now will be picked up by auto filterer
+    // Marks first load as finished
     isFirstLoad = false;
   });
+
+  hasSyncCompleted.subscribe((val) => {
+    if(val) {
+      loadDomains();
+      requiresSync = false;
+      $hasSyncCompleted = false;
+    }
+  });
+
 </script>
 
 <Layout heading={$_("domains")}>
@@ -194,17 +223,23 @@
       type="primary"
       size="large"
       iconName="sync" 
-      on:click={() => showSyncModal = true} 
-      disabled={!hasRegistrarSettings}>{$_("synchronize")}</Button>
+      on:click={handleSync} 
+      disabled={$isSyncingDomains}>
+      {#if $isSyncingDomains}
+        {$_("syncing")}...
+      {:else}
+        {$_("synchronize")}
+      {/if}
+  </Button>
   </div>
   <div class="flex flex-row flex-grow gap-8 px-5 py-6">
-    {#if isFirstLoad}
+    {#if isFirstLoad && !requiresSync}
       <p>{$_("loading")}</p>
-    {:else if hasRegistrarSettings && !requiresSync}
-      <div class="flex flex-col flex-shrink gap-4 text-gray-400">
+    {:else if !requiresSync}
+      <div class="domain-filters flex flex-col gap-4 text-gray-400">
         <DomainFilters bind:filters={filters} />
       </div>
-      <div class="flex flex-col flex-grow">
+      <div class="flex flex-col flex-grow min-w-0 flex-shrink">
         {#if domains.length > 0}
           <Table {cols} 
           items={domains} 
@@ -249,13 +284,14 @@
           <p class="text-gray-400">{$_("domains_route.no_domains_message")}</p>
         {/if}
       </div>
-    {:else if requiresSync}
-      <div class="text-gray-400">
+    {:else if requiresSync && $isSyncingDomains}
+      <div class="flex flex-col items-center flex-grow">
+        <img src="/genie.png" class="block mb-4 text-center" alt="Genie" />
         <p class="mb-2">
-          {$_("domains_route.requires_sync_message_one")}
+          {$_("syncing_domains_message")}
         </p>
-        <p class="mb-2">
-          {$_("domains_route.requires_sync_message_two")}
+        <p class="mb-2 font-medium">
+          {$_("syncing_domains_message_two")}
         </p>
       </div>
     {:else if !isFirstLoad}
@@ -268,6 +304,11 @@
       </p>
     {/if}
   </div>
-
-  <SyncDomains bind:show={showSyncModal} on:domainsSynced={onDomainsSynced} />
 </Layout>
+
+<style>
+  .domain-filters {
+    min-width: 25%;
+    max-width: 25%;
+  }
+</style>

@@ -5,13 +5,24 @@
   import Dropdown from "../shared/Dropdown.svelte";
   import Radio from "../shared/Radio.svelte";
   import SearchField from "../shared/SearchField.svelte";
+  import Checkbox from "../shared/Checkbox.svelte";
 
   export let filters: DomainFilters;
+
 </script>
 
 <div>
   <h3 class="text-xs uppercase mb-2">{$_("filter_by_name")}</h3>
   <SearchField bind:value={filters.name} />
+</div>
+<div>
+  <h3 class="text-xs uppercase mb-2">{$_("filter_by_name_servers")}</h3>
+  <SearchField bind:value={filters.nameServer} />
+  <div class="mt-4">
+    <Checkbox bind:checked={filters.onlyShowEmptyNameServers}>
+      {$_("show_empty_name_servers")}
+    </Checkbox>
+  </div>
 </div>
 <div>
   <h3 class="text-xs uppercase mb-2">{$_("filter_by_dates")}</h3>

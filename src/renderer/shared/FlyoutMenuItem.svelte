@@ -6,7 +6,6 @@
 </script>
 
 <a {href} class="flyout-menu-item -m-3 p-3 flex rounded-lg items-center hover:bg-gray-50" on:click>
-  <!-- Heroicon name: outline/cursor-click -->
   <Icon 
       class="flex-shrink-0 text-steel-600 fill-current" 
       width="1.5rem"

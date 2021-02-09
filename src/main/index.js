@@ -18,7 +18,7 @@ function createWindow() {
   window = new BrowserWindow({
     width: 1200,
     height: 800,
-    title: "Domain Genie",
+    title: "Domain Genie BETA",
     icon: isDev()
       ? path.join(process.cwd(), "public/icon.png")
       : path.join(__dirname, "public/icon.png"),
@@ -54,27 +54,46 @@ function createWindow() {
   });
 }
 
-// This method will be called when Electron has finished
-// initialization and is ready to create browser windows.
-// Some APIs can only be used after this event occurs.
-app.on("ready", createWindow);
+// We only ever want one instance of the app running
+const singleInstanceLock = app.requestSingleInstanceLock();
 
-// Quit when all windows are closed.
-app.on("window-all-closed", function () {
-  // On macOS it is common for applications and their menu bar
-  // to stay active until the user quits explicitly with Cmd + Q
-  if (process.platform !== "darwin") app.quit();
-});
+if (!singleInstanceLock) {
+  app.quit();
+} else {
+  app.on("second-instance", (event, commandLine, workingDirectory) => {
+    // The user tried to run a second instance, focus our window.
+    if (window) {
+      if (window.isMinimized()) window.restore();
+      window.focus();
+    }
+  });
 
-app.on("activate", function () {
-  // On macOS it's common to re-create a window in the app when the
-  // dock icon is clicked and there are no other windows open.
-  if (window === null) createWindow();
-});
+  // This method will be called when Electron has finished
+  // initialization and is ready to create browser windows.
+  // Some APIs can only be used after this event occurs.
+  app.on("ready", async () => {
+    createWindow();
 
-debug({
-  showDevTools: false,
-});
+    debug({
+      showDevTools: false,
+    });
 
-registrarBootstrap();
-fileStoreBootstrap();
+    registrarBootstrap();
+    fileStoreBootstrap();
+  });
+
+  // Quit when all windows are closed.
+  app.on("window-all-closed", function () {
+    // On macOS it is common for applications and their menu bar
+    // to stay active until the user quits explicitly with Cmd + Q
+    if (process.platform !== "darwin") app.quit();
+  });
+
+  app.on("activate", function () {
+    // On macOS it's common to re-create a window in the app when the
+    // dock icon is clicked and there are no other windows open.
+    if (window === null) createWindow();
+  });
+
+  app.setAppUserModelId("DomainGenie");
+}

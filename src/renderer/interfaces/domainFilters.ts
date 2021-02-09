@@ -1,8 +1,7 @@
-import type { NameFilterType } from "../constants/nameFilterType";
-
 export interface DomainFilters {
   name?: string;
-  nameType?: NameFilterType;
+  nameServer?: string;
+  onlyShowEmptyNameServers?: boolean;
   expires?: number;
   orderBy: string;
   isDescending: boolean;

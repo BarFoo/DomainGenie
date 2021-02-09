@@ -27,6 +27,9 @@
       nameServers = [...nameServers];
     }
   }
+
+  // Filter out undefined/null name servers (NOT empty strings)
+  nameServers = nameServers.filter(s => s);
 </script>
 
 <form class={$$props.class}>

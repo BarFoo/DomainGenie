@@ -48,6 +48,8 @@
   "save_changes": "Save Changes",
   "expires_within": "Expires within {days} days",
   "filter_by_name": "Filter By Name",
+  "filter_by_name_servers": "Filter By Name Servers",
+  "show_empty_name_servers": "Only show domains with no NS",
   "filter_by_dates": "Dates",
   "rows_per_page": "Rows Per Page",
   "apply_filters": "Apply Filters",
@@ -55,8 +57,8 @@
   "order_by": "Order By",
   "descending": "Descending (z-a)",
   "ascending": "Ascending (a-z)",
-  "oldest_to_recent": "Oldest to recent",
-  "recent_to_oldest": "Recent to oldest",
+  "oldest_to_recent": "Earliest to latest",
+  "recent_to_oldest": "Latest to earliest",
   "registered": "Registered",
   "domains_tooltip": "View all of your domains",
   "registrars_tooltip": "Configure registrar settings",
@@ -79,11 +81,15 @@
   "saving": "Saving",
   "privacy": "Privacy",
   "auto_renewal": "Auto Renewal",
+  "checking": "Checking",
+  "syncing": "Syncing",
+  "syncing_domains_title": "Syncing Domains",
+  "syncing_domains_message": "The genie is fetching your domains",
+  "syncing_domains_message_two": "Please do not close the window or your wish may not be granted",
+  "no_domains": "No domains came back!",
 
   "domains_route": {
-    "syncing": "Syncing Domains",
-    "fetching": "The genie is working hard to fetch your domains.",
-    "please_wait": "Please wait, this could take several minutes.",
+    "please_wait": "Please wait, this could take several minutes",
     "sync_error_heading": "Error Synchronizing Domains",
     "sync_error_message": "Please check you have a valid internet connection.",
     "imported_message": "Imported {total} domains.",
@@ -117,5 +123,19 @@
     "checking_message": "Please wait, checking registrar settings.",
     "all_rejected_message": "All registrar API keys have failed. Please check them and try again.",
     "rejected_removal_message": "Your registrar account may have IP access restrictions"
+  },
+
+  "notifications": {
+    "checking_registrars_title": "Checking Registrars",
+    "checking_registrars_message": "The genie is working hard to grant you your wish",
+    "check_registrar_invalid_title": "{registrar} Error",
+    "check_registrar_invalid_message": "The given key(s) for {registrar} are invalid. Please check and try again.",
+    "check_registrar_valid_title": "{registrar} Valid",
+    "check_registrar_valid_message": "{registrar} is working as expected",
+    "sync_domains_completed_title": "Sync Completed",
+    "sync_domains_completed_message": "The genie has finished working his magic",
+    "sync_domains_completed_added": "{domainsAdded} domains added",
+    "sync_domains_completed_updated": "{domainsUpdated} domains updated",
+    "sync_domains_rejected_registrar": "{registrar} failed to import"
   }
 }

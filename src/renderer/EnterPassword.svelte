@@ -9,7 +9,7 @@
   import Modal from "./shared/Modal.svelte";
   import Alert from "./shared/Alert.svelte";
   import Badge from "./shared/Badge.svelte";
-  import { fileStoreService } from "./stores";
+  import { fileStoreService, hasEnteredPassword } from "./stores";
   import checkPasswordStrength from "check-password-strength";
 
   // If the user has already created their password
@@ -70,6 +70,7 @@
           window.localStorage.setItem("hasCreatedPassword", "1");
           showModal = false;
           hasCreatedPassword = true;
+          $hasEnteredPassword = true;
           push("/registrars");
         }
       });
@@ -91,6 +92,7 @@
           passwordErrors = [...passwordErrors];
         } else {
           showModal = false;
+          $hasEnteredPassword = true;
           push("/domains");
         }
       });

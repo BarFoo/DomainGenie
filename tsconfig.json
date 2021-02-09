@@ -1,6 +1,6 @@
 {
   "extends": "electron-snowpack/config/tsconfig.json",
-  "include": ["src", "types/window.d.ts"],
+  "include": ["src"],
   "compilerOptions": {
     "allowSyntheticDefaultImports": true,
     "importsNotUsedAsValues": "error",

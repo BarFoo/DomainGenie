@@ -32,7 +32,7 @@ export default class DynadotClient {
     const response = await this.client.get(
       `api3.xml?key=${this.apiKey}&command=list_domain`
     );
-    const domains = await this.parseDomains(response, contacts);
+    const domains = await this.parseDomainInfoResponse(response, contacts);
 
     return domains;
   }
@@ -41,13 +41,43 @@ export default class DynadotClient {
     const response = await this.client.get(
       `api3.xml?key=${this.apiKey}&command=contact_list`
     );
-
-    const contacts = await this.parseContacts(response);
+    const contacts = await this.parseContactResponse(response);
 
     return Promise.resolve(contacts);
   }
 
-  async parseContacts(response) {
+  /**
+   * Update the nameservers for one or more domain names.
+   * @param {*} domains
+   */
+  async updateNameServers(domainNames, nameServers) {
+    // Dynadot's API is awful.. each response is formatted differently, so we have no choice
+    // but to parse each one on its own.
+    const params = {
+      key: this.apiKey,
+      command: "set_ns",
+      domain: domains.join(","),
+    };
+
+    // Dynadot's max limit is 100 domains per request. So if we're updating thousands
+    // of domains we need to put a delay between each request.
+    domains.forEach((domain, index) => {
+      params[`domain${index}`] = domain;
+    });
+
+    const setNsResponse = await this.client.get("api3.xml", {
+      key: this.apiKey,
+      command: "set_ns",
+    });
+
+    return this.isValidNameServerResponse(setNsResponse);
+  }
+
+  /**
+   * @access private
+   * @param {*} response
+   */
+  async parseContactResponse(response) {
     const data = JSON.parse(
       xmlToJs.xml2json(response.data, this.xmlToJsonOptions)
     );
@@ -92,7 +122,7 @@ export default class DynadotClient {
       });
     });
 
-    return Promise.resolve(contacts);
+    return contacts;
   }
 
   /**
@@ -100,7 +130,7 @@ export default class DynadotClient {
    * @param {*} response The domains response to parse
    * @param {*} contacts Already parsed contacts array
    */
-  async parseDomains(response, contacts) {
+  async parseDomainInfoResponse(response, contacts) {
     const data = JSON.parse(
       xmlToJs.xml2json(response.data, this.xmlToJsonOptions)
     );
@@ -154,7 +184,19 @@ export default class DynadotClient {
       });
     });
 
-    return Promise.resolve(domains);
+    return domains;
+  }
+
+  /**
+   * @access private
+   * @param {*} response
+   */
+  async isValidNameServerResponse(response) {
+    const data = JSON.parse(
+      xmlToJs.xml2json(response.data, this.xmlToJsonOptions)
+    );
+
+    return data.SetNsResponse.SetNsHeader.SuccessCode._text === "0";
   }
 
   check() {

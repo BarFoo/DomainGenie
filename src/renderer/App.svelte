@@ -7,18 +7,52 @@
   import Domain from "./routes/Domain.svelte";
   import RegistrarSettings from "./routes/RegistrarSettings.svelte";
   import Router from "svelte-spa-router";
+  import { wrap } from "svelte-spa-router/wrap";
   import Settings from "./routes/Settings.svelte";
   import MarketplaceSettings from "./routes/MarketplaceSettings.svelte";
   import Home from "./routes/Home.svelte";
   import NotFound from "./routes/NotFound.svelte";
+  import { SvelteToast } from "@zerodevx/svelte-toast";
+  import NotificationHandler from "./NotificationHandler.svelte";
+import { hasEnteredPassword } from "./stores";
 
   const routes = {
-    "/": Home,
-    "/domains": Domains,
-    "/domains/:name": Domain,
-    "/domains/:name/*": Domain,
-    "/registrars": RegistrarSettings,
-    "/settings": Settings,
+    "/": wrap({
+      component: Home,
+      conditions: [
+        () => $hasEnteredPassword
+      ]
+    }),
+    "/domains": wrap({
+      component: Domains,
+      conditions: [
+        () => $hasEnteredPassword
+      ]
+    }),
+    "/domains/:name": wrap({
+      component: Domain,
+      conditions: [
+        () => $hasEnteredPassword
+      ]
+    }),
+    "/domains/:name/*": wrap({
+      component: Domain,
+      conditions: [
+        () => $hasEnteredPassword
+      ]
+    }),
+    "/registrars": wrap({
+      component: RegistrarSettings,
+      conditions: [
+        () => $hasEnteredPassword
+      ]
+    }),
+    "/settings": wrap({
+      component: Settings,
+      conditions: [
+        () => $hasEnteredPassword
+      ]
+    }),
     "/marketplaces": MarketplaceSettings,
     "*": NotFound
   };
@@ -41,11 +75,16 @@
 </script>
 
 <TailwindCSS />
+
 <svelte:window on:click={handleExternalLinks} />
 
 <EnterPassword />
 
 <Router {routes} />
+
+<NotificationHandler />
+
+<SvelteToast />
 
 <style global>
   :global(html), :global(body) {

@@ -2,24 +2,24 @@ import { contextBridge, ipcRenderer, shell } from "electron";
 
 contextBridge.exposeInMainWorld("electronApi", {
   send: (channel, ...args) => {
-    let validChannels = ["file-store-set", "file-store-remove"];
+    let validChannels = [
+      "fileStoreSet",
+      "fileStoreRemove",
+      "checkRegistrars",
+      "getAllDomains",
+    ];
     if (validChannels.includes(channel)) {
       ipcRenderer.send(channel, ...args);
     }
   },
   invoke: (channel, ...args) => {
-    let validChannels = [
-      "file-store-init",
-      "file-store-get",
-      "check-registrars",
-      "get-all-domains",
-    ];
+    let validChannels = ["fileStoreInit", "fileStoreGet"];
     if (validChannels.includes(channel)) {
       return ipcRenderer.invoke(channel, ...args);
     }
   },
   receive: (channel, func) => {
-    let validChannels = [];
+    let validChannels = ["checkedRegistrar", "getAllDomainsCompleted"];
     if (validChannels.includes(channel)) {
       // Deliberately strip event as it includes `sender`
       ipcRenderer.on(channel, (event, ...args) => func(...args));

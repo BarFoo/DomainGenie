@@ -4,14 +4,14 @@
   export let forceChecked = false;
 </script>
 
-<label for="checkbox" class="flex justify-start relative items-start">
+<label for="checkbox" class="flex justify-start relative items-start" on:click={() => checked = !checked}>
   <div class="bg-white border-2 border-gray-300 flex flex-shrink-0 justify-center items-center"
     class:mr-2={$$slots.default}
     class:w-5={size === "default"}
     class:h-5={size === "default"}
     class:w-4={size === "small"}
     class:h-4={size === "small"}>
-    <input type=checkbox name="checkbox" class="opacity-0 absolute" bind:checked on:change>
+    <input type="checkbox" name="checkbox" class="opacity-0 absolute" bind:checked on:change>
     <svg class="fill-current text-steel-500 pointer-events-none" 
       class:w-4={size === "default"}
       class:h-4={size === "default"}

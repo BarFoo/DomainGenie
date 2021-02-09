@@ -28,17 +28,8 @@ export default class NamesiloClient {
 
   async getDomains() {
     /**
-     * Ok so NameSilo's API is awkward. The only way to get domain info is to call each domain separately.
-     * The user could have tens of thousands of domains at NameSilo for all we know. Sadly, we will have
-     * to make do and send multiple requests.
+     * Ok so NameSilo's API is awkward..
      */
-    const contacts = await this.getContacts();
-    const response = await this.client.get(
-      `listDomains?version=${this.apiVersion}&type=xml&key=${this.apiKey}`
-    );
-    const domains = await this.parseDomains(response, contacts);
-
-    return domains;
   }
 
   /**

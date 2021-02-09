@@ -15,6 +15,10 @@ class GoDaddyClient {
 
     this.client = axios.create({
       baseURL,
+      headers: {
+        Accept: "application/json",
+        Authorization: `sso-key ${this.apiKey}:${this.secret}`,
+      },
     });
   }
 
@@ -36,8 +40,7 @@ class GoDaddyClient {
         return new Promise((repeatableResolve, repeatableRejection) => {
           this.client
             .get(
-              `domains?limit=1000&includes=contacts,nameServers&statuses=ACTIVE${markerQs}`,
-              this.commonArgs()
+              `domains?limit=1000&includes=contacts,nameServers&statuses=ACTIVE${markerQs}`
             )
             .then((response) => {
               const dataLen = response.data.length;
@@ -79,9 +82,39 @@ class GoDaddyClient {
     });
   }
 
+  /**
+   * Updates one or more given domains. Domains must be an array even if only
+   * updating one! I would like to switch to TypeScript in the near future so
+   * enforcing types at this level now will help with that.
+   * @param {array} domains
+   */
+  updateDomains(domains) {
+    /**
+     * GoDaddy does not support bulk updates. The only choice we have is to
+     * send requests sequentially. I tried testing with more than one request at a time
+     * but it sadly doesn't work. This of course does mean for bulk updating
+     * thousands of domains, it will take a long time. There's pretty
+     * much no way around this. The renderer should already know this
+     * and display a message accordingly to the user that they will be
+     * notified once all updates have been completed. Warn them not to
+     * quit the application until they have been notified that this
+     * job has finished!
+     *
+     * From my testing it seems sending requests with a 5 second delay
+     * between each one is the safest.
+     */
+
+    return this.client.patch(`domains/${domain.domainName}`, {
+      locked: domain.locked,
+      nameServers: domain.nameServers,
+      renewAuto: domain.hasAutoRenewal,
+      exposeWhois: !domain.hasPrivacy,
+    });
+  }
+
   check() {
     // There is no real method to check, so we use the fastest one available (which afaik is tlds check)
-    return this.client.get("domains/tlds", this.commonArgs());
+    return this.client.get("domains/tlds");
   }
 
   /**
@@ -108,11 +141,9 @@ class GoDaddyClient {
         contactBilling: this.parseContact(data.contactBilling),
         contactRegistrant: this.parseContact(data.contactRegistrant),
         contactTech: this.parseContact(data.contactTech),
-        registrationDate: data.createdAt ? new Date(data.createdAt) : null,
-        expiryDate: data.expires ? new Date(data.expires) : null,
-        transferEligibilityDate: data.transferAwayEligibleAt
-          ? new Date(data.transferAwayEligibleAt)
-          : null,
+        registrationDate: data.createdAt,
+        expiryDate: data.expires,
+        transferEligibilityDate: data.transferAwayEligibleAt,
         registrarDomainId: data.domainId.toString(),
         locked: data.locked,
         nameServers: data.nameServers,
@@ -152,18 +183,6 @@ class GoDaddyClient {
 
   getName() {
     return this.name;
-  }
-
-  /**
-   * @access private
-   */
-  commonArgs() {
-    return {
-      headers: {
-        Accept: "application/json",
-        Authorization: `sso-key ${this.apiKey}:${this.secret}`,
-      },
-    };
   }
 }
 

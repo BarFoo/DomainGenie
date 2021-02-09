@@ -100,7 +100,7 @@
               class:font-light={col.hasLight}
               style="flex-basis: {col.width ? col.width : 100 / cols.length}%;">
               {#if col.formatter}
-                {col.formatter(item[col.key])}
+                {@html col.formatter(item[col.key])}
               {:else}
                 {item[col.key]}
               {/if}
