@@ -1,3 +1,5 @@
+import updateOperations from "./updateOperations";
+import { chunkArray, dedupe, sleep } from "../utils";
 const axios = require("axios");
 const xmlToJs = require("xml-js");
 
@@ -7,11 +9,14 @@ export default class NamesiloClient {
     this.name = "NameSilo";
 
     // How long to sleep, in milliseconds, between each getDomainInfo request
-    // so we don't get bannned
+    // so we don't get bannned, or between other operations
     this.sleep = 250;
 
     // Namesilo's success code for successful operations
     this.successCode = "300";
+
+    // Update name server chunk size
+    this.nameServerChunkSize = 200;
 
     this.xmlToJsonOptions = {
       compact: true,
@@ -47,7 +52,7 @@ export default class NamesiloClient {
      */
     const contacts = await this.getContacts();
     const domainNames = await this.parseDomainListResponse(
-      await this.client.get("listDomain")
+      await this.client.get("listDomains")
     );
 
     const domains = [];
@@ -77,18 +82,78 @@ export default class NamesiloClient {
     return await this.parseContactResponse(response);
   }
 
-  async updateDomains(domains, operation) {
+  async updateDomains(domains, operation, partialCallback) {
     const filteredDomains = domains.filter((d) => d.registrar === this.name);
+
+    if (filteredDomains.length === 0) {
+      return Promise.reject("No domains given!");
+    }
 
     const result = {
       acceptedDomains: [],
       rejectedDomains: [],
     };
 
+    // Supported bulk operations
+    if (operation === updateOperations.NAMESERVERS) {
+      // If its only one or bulk update, each domain will have the same nameServers
+      // so use the first ones nameservers
+      const ns = filteredDomains[0].nameServers;
+      let currentChunk;
+      try {
+        await this.updateNameservers(
+          filteredDomains.map((d) => d.domainName),
+          ns,
+          currentChunk
+        );
+        if (currentChunk && Array.isArray(currentChunk)) {
+          currentChunk.forEach((domainName) => {
+            result.acceptedDomains.push({
+              domainName,
+            });
+          });
+        }
+      } catch (ex) {
+        if (currentChunk && Array.isArray(currentChunk)) {
+          currentChunk.forEach((domainName) => {
+            result.rejectedDomains.push({
+              domainName,
+              statusCode: ex.response.status,
+            });
+          });
+        }
+      }
+
+      return result;
+    }
+
+    // Individual operations
     for (const domain of filteredDomains) {
       try {
-      } catch (ex) {}
+        if (operation === updateOperations.CONTACTS) {
+          const contacts = [
+            domain.contactAdmin,
+            domain.contactBilling,
+            domain.contactRegistrant,
+            domain.contactTech,
+          ];
+          const uniqueContacts = dedupe(contacts, "contactId");
+          for (const contact of uniqueContacts) {
+            await this.updateContact(contact);
+          }
+          result.acceptedDomains.push({
+            domainName: domain.domainName,
+          });
+        }
+      } catch (ex) {
+        result.rejectedDomains.push({
+          domainName: domain.domainName,
+          statusCode: ex.response.status,
+        });
+      }
     }
+
+    return result;
   }
 
   async updateAutoRenew(domain) {
@@ -127,6 +192,54 @@ export default class NamesiloClient {
     });
 
     return this.parseResponse(response);
+  }
+
+  async updatePrivacy(domain) {
+    let response;
+    if (domain.hasPrivacy) {
+      response = await this.client.get("addPrivacy", {
+        params: {
+          domain: domain.domainName,
+        },
+      });
+    } else {
+      response = await this.client.get("removePrivacy", {
+        params: {
+          domain: domain.domainName,
+        },
+      });
+    }
+
+    return this.parseResponse(response);
+  }
+
+  async updateNameservers(domainNames, nameServers, currentChunk) {
+    // Namesilo supports updating up to 200 domains at once, so
+    // we have to do them in batches of 200
+
+    // Convert domainNames to batches of 200
+    const chunks = chunkArray(domainNames, this.nameServerChunkSize);
+
+    for (const chunk of chunks) {
+      currentChunk = chunk;
+      // Namesilo expects a comma delimited string of domains
+      const params = {
+        domain: chunk.join(","),
+      };
+
+      nameServers.forEach((nameServer, index) => {
+        if (index > 12) {
+          return;
+        }
+        params[`ns${index + 1}`] = nameServer;
+      });
+
+      await this.client.get("changeNameServers", {
+        params,
+      });
+
+      await sleep(this.sleep);
+    }
   }
 
   /**

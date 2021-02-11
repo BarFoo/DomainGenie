@@ -136,6 +136,8 @@
     "sync_domains_completed_message": "The genie has finished working his magic",
     "sync_domains_completed_added": "{domainsAdded} domains added from {registrar}",
     "sync_domains_completed_updated": "{domainsUpdated} domains updated from {registrar}",
-    "sync_domains_rejected_registrar": "{registrar} failed to import"
+    "sync_domains_rejected_registrar": "{registrar} failed to import",
+    "sync_domains_in_progress": "Currently fetching your domains, please wait",
+    "update_domains_in_progress": "The genie is updating your domains"
   }
 }

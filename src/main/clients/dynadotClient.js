@@ -50,6 +50,10 @@ export default class DynadotClient {
     return await this.parseContactResponse(response);
   }
 
+  async updateDomains(domains, operation, partialCallback) {
+    return Promise.resolve(true);
+  }
+
   /**
    * Update the nameservers for one or more domains.
    * @param {*} domains

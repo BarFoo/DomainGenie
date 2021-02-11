@@ -7,13 +7,20 @@
   import { _ } from "svelte-i18n";
   import Button from "../shared/Button.svelte";
   import NameServerForm from "../shared/NameServerForm.svelte";
-  import { singleDomainEdit } from "../stores";
+  import { registrarService, appDatabase, singleDomainEdit, isUpdatingDomains } from "../stores";
   import type { Domain } from "../database/domain";
+  import { UpdateOperations } from "../constants/updateOperations";
   
   let domain: Domain = $singleDomainEdit;
-  let isSaving: boolean = false;
 
-  function saveChanges() {}
+  async function saveChanges() {
+    await $appDatabase.domains.put(domain);
+    $registrarService.updateDomains([{
+      domainName: domain.domainName,
+      registrar: domain.registrar,
+      nameServers: domain.nameServers
+    }], UpdateOperations.NAMESERVERS);
+  }
 </script>
 
 {#if domain}
@@ -23,8 +30,12 @@
       <p class="mt-1 text-sm">{$_("name_server_description")}</p>
     </div>
     <div class="flex-shrink-0">
-      <Button type="primary" iconName="save" disabled={isSaving} on:click={saveChanges}>
-        {#if !isSaving}
+      <Button 
+        type="primary" 
+        iconName="save" 
+        disabled={$isUpdatingDomains} 
+        on:click={saveChanges}>
+        {#if !$isUpdatingDomains}
           {$_("save_changes")}
         {:else}
           {$_("saving")}...
@@ -32,5 +43,5 @@
       </Button>
     </div>
   </div>
-  <NameServerForm nameServers={domain.nameServers} class="divide-y divide-gray-200" />
+  <NameServerForm bind:nameServers={domain.nameServers} class="divide-y divide-gray-200" />
 {/if}

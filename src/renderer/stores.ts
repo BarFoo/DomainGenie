@@ -7,6 +7,7 @@ import RegistrarService from "./services/registrarService";
 export const isCheckingRegistrars = writable(false);
 export const isSyncingDomains = writable(false);
 export const hasSyncCompleted = writable(false);
+export const isUpdatingDomains = writable(false);
 
 // State tracking if password is entered, used by the router
 // pre-conditions, to prevent components from being loaded

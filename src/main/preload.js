@@ -1,5 +1,10 @@
 import { contextBridge, ipcRenderer, shell } from "electron";
 
+/**
+ * This context bridge safely exposes various operations on the backend
+ * via the means of whitelisting channel names. These are available
+ * to the renderer via window.electronApi.
+ */
 contextBridge.exposeInMainWorld("electronApi", {
   send: (channel, ...args) => {
     let validChannels = [
@@ -7,6 +12,7 @@ contextBridge.exposeInMainWorld("electronApi", {
       "fileStoreRemove",
       "checkRegistrars",
       "getAllDomains",
+      "updateDomains",
     ];
     if (validChannels.includes(channel)) {
       ipcRenderer.send(channel, ...args);
@@ -23,7 +29,10 @@ contextBridge.exposeInMainWorld("electronApi", {
       "checkedRegistrar",
       "getAllDomainsCompleted",
       "getAllDomainsUpdate",
-      "checkRegistrarsComplete",
+      "checkRegistrarsCompleted",
+      "updateDomainsPartial",
+      "updateDomainsRegistrar",
+      "updateDomainsCompleted",
     ];
     if (validChannels.includes(channel)) {
       // Deliberately strip event as it includes `sender`

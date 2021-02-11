@@ -41,7 +41,7 @@ async function getAllDomains(registrarSettings) {
       domains.forEach((domain) => result.domains.push(domain));
       result.isValid = true;
     } catch (ex) {
-      result.isRejected = true;
+      result.isValid = false;
       result.error = ex;
     }
     process.send(result);

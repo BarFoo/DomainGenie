@@ -1,4 +1,5 @@
 import updateOperations from "./updateOperations";
+import { sleep } from "../utils";
 const axios = require("axios");
 
 class GoDaddyClient {
@@ -13,6 +14,9 @@ class GoDaddyClient {
     this.name = "GoDaddy";
     this.apiKey = keys.apiKey;
     this.secret = keys.secret;
+
+    // How long to sleep for (in milliseconds) between update operations and such
+    this.sleep = 100;
 
     this.client = axios.create({
       baseURL,
@@ -95,8 +99,10 @@ class GoDaddyClient {
    * updating one! I would like to switch to TypeScript in the near future so
    * enforcing types at this level now will help with that.
    * @param {array} domains
+   * @param {*} operation The type of operation to perform
+   * @param {Function} partialCallback A callback function to receive partial updates
    */
-  async updateDomains(domains, operation) {
+  async updateDomains(domains, operation, partialCallback) {
     /**
      * GoDaddy does not support bulk updates. The only choice we have is to
      * send requests with a sleep in between. I tried testing with more than one request at a time
@@ -107,22 +113,15 @@ class GoDaddyClient {
      * notified once all updates have been completed. Warn them not to
      * quit the application until they have been notified that this
      * job has finished!
-     *
-     * From my testing it seems sending requests with a 1 second delay
-     * between each one is ok.
      */
-
-    // Ensure we're only working against GoDaddy domains,
-    // yes this is perhaps overkill and since we have
-    // control of what is being passed in this shouldn't be needed
-    const filteredDomains = domains.filter((d) => d.registrar === this.name);
 
     const result = {
       acceptedDomains: [],
       rejectedDomains: [],
     };
 
-    for (const domain of filteredDomains) {
+    for (const domain of domains) {
+      let isValid = false;
       try {
         if (operation === updateOperations.CONTACTS) {
           await this.client.patch(`domains/${domain.domainName}/contacts`, {
@@ -131,29 +130,47 @@ class GoDaddyClient {
             contactRegistrant: domain.contactRegistrant,
             contactTech: domain.contactTech,
           });
-          // If it gets here then it is successful
-          acceptedDomains.push({
-            domainName: domain.domainName,
-          });
         } else {
           // At least with GoDaddy we can update all the rest without
           // separate API calls
-          await this.client.patch(`domains/${domain.domainName}`, {
-            nameServers: domain.nameServers,
-            renewAuto: domain.hasAutoRenewal,
-            exposeWhois: !domain.hasPrivacy,
-          });
+          const params = {};
+
+          if (domain.nameServers) {
+            params.nameServers = domain.nameServers;
+          }
+
+          if (domain.hasAutoRenewal != null) {
+            params.renewAuto = domain.hasAutoRenewal;
+          }
+
+          if (domain.hasPrivacy != null) {
+            params.exposeWhois = !domain.hasPrivacy;
+          }
+
+          await this.client.patch(`domains/${domain.domainName}`, params);
         }
+
+        isValid = true;
+        // If it gets here then it is successful
+        result.acceptedDomains.push({
+          domainName: domain.domainName,
+        });
       } catch (ex) {
         result.rejectedDomains.push({
           domainName: domain.domainName,
+          nameServers: domain.nameServers,
           statusCode: ex.response.status,
         });
       }
 
-      // Sleep for half a second before making the next request
-      // @todo: Move this to config? Decrease it?
-      await new Promise((r) => setTimeout(r, 1000));
+      if (partialCallback) {
+        partialCallback({
+          domainName: domain.domainName,
+          isValid,
+        });
+      }
+
+      await sleep(this.sleep);
     }
 
     return result;

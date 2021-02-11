@@ -9,12 +9,24 @@
    * since individual components can be destroyed/unmounted we would lose the events.
   */
   import { _ } from "svelte-i18n";
-  import { isCheckingRegistrars, isSyncingDomains, appDatabase, hasSyncCompleted } from "./stores";
+  import { isCheckingRegistrars, isSyncingDomains, isUpdatingDomains, appDatabase, hasSyncCompleted } from "./stores";
   import appNotification from "./appNotification";
   import type { CheckedRegistrarNotification } from "./interfaces/checkRegistrarNotification";
   import { toast } from '@zerodevx/svelte-toast';
-  import { successTheme, errorTheme, warningTheme } from "./toastThemes";
-  import type { GetAllDomainsUpdate } from "./interfaces/getAllDomainsUpdate"
+  import { successTheme, errorTheme, warningTheme, bottomTheme } from "./toastThemes";
+  import type { GetAllDomainsUpdate } from "./interfaces/GetAllDomainsUpdate";
+  import type { UpdateDomainsPartial } from "./interfaces/updateDomainsPartial";
+
+  // A toast id of any current on-going operation (sync, updates etc)
+  let operationToastId;
+
+  const operationToastOptions = {
+    initial: 0,
+    progress: 0,
+    dismissable: false,
+    theme: bottomTheme,
+    reversed: true
+  };
 
   // Handle check registrar notification response
   window.electronApi.receive("checkedRegistrar", (result: CheckedRegistrarNotification) => {
@@ -37,7 +49,7 @@
     }
   });
 
-  window.electronApi.receive("checkRegistrarsComplete", () => {
+  window.electronApi.receive("checkRegistrarsCompleted", () => {
     console.log("Check Registrars Complete");
     $isCheckingRegistrars = false;
   });
@@ -114,6 +126,41 @@
     
     $isSyncingDomains = false;
     $hasSyncCompleted = true;
+
+    if(operationToastId) {
+      toast.pop(operationToastId);
+      operationToastId = null;
+    }
   });
+
+  // Occurs when there are partial results (in this case one domain)
+  // to an update request
+  window.electronApi.receive("updateDomainsPartial", (partialResult: UpdateDomainsPartial) => {
+    if(operationToastId) {
+      toast.set(operationToastId, { progress: partialResult.progress});
+    }
+  });
+
+  window.electronApi.receive("updateDomainsCompleted", () => {
+    $isUpdatingDomains = false;
+    if(operationToastId) {
+      toast.pop(operationToastId);
+      operationToastId = null;
+    }
+  });
+
+  $: { 
+    if($isSyncingDomains) {
+      operationToastId = toast.push(
+        `${$_("notifications.sync_domains_in_progress")}`,
+        operationToastOptions
+      );
+    } else if($isUpdatingDomains) {
+      operationToastId = toast.push(
+        `${$_("notifications.update_domains_in_progress")}`,
+        operationToastOptions
+      );
+    }
+  }
 
 </script>

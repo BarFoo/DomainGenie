@@ -1,5 +1,10 @@
+import type { Domain } from "../database/domain";
 import type { RegistrarSettings } from "../interfaces/registrarSettings";
-import { isSyncingDomains, isCheckingRegistrars } from "../stores";
+import {
+  isSyncingDomains,
+  isCheckingRegistrars,
+  isUpdatingDomains,
+} from "../stores";
 
 /**
  * A service responsible for communicating with the registrar handles in the main process.
@@ -15,5 +20,10 @@ export default class RegistrarService {
   getAllDomains() {
     isSyncingDomains.set(true);
     window.electronApi.send("getAllDomains");
+  }
+
+  updateDomains(domains: Domain[], operationName: string) {
+    isUpdatingDomains.set(true);
+    window.electronApi.send("updateDomains", domains, operationName);
   }
 }
