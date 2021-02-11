@@ -1,3 +1,4 @@
+import updateOperations from "./updateOperations";
 const axios = require("axios");
 
 class GoDaddyClient {
@@ -36,12 +37,19 @@ class GoDaddyClient {
       let shouldRepeat = true;
 
       const repeatableRequest = () => {
-        const markerQs = markerDomain !== "" ? `&marker=${markerDomain}` : "";
+        const params = {
+          limit: 1000,
+          includes: "contacts,nameServers",
+          statuses: "ACTIVE",
+        };
+        if (markerDomain !== "") {
+          params.marker = markerDomain;
+        }
         return new Promise((repeatableResolve, repeatableRejection) => {
           this.client
-            .get(
-              `domains?limit=1000&includes=contacts,nameServers&statuses=ACTIVE${markerQs}`
-            )
+            .get("domains", {
+              params,
+            })
             .then((response) => {
               const dataLen = response.data.length;
               domains = [...domains, ...self.parseDomains(response.data)];
@@ -88,10 +96,10 @@ class GoDaddyClient {
    * enforcing types at this level now will help with that.
    * @param {array} domains
    */
-  updateDomains(domains) {
+  async updateDomains(domains, operation) {
     /**
      * GoDaddy does not support bulk updates. The only choice we have is to
-     * send requests sequentially. I tried testing with more than one request at a time
+     * send requests with a sleep in between. I tried testing with more than one request at a time
      * but it sadly doesn't work. This of course does mean for bulk updating
      * thousands of domains, it will take a long time. There's pretty
      * much no way around this. The renderer should already know this
@@ -100,16 +108,55 @@ class GoDaddyClient {
      * quit the application until they have been notified that this
      * job has finished!
      *
-     * From my testing it seems sending requests with a 5 second delay
-     * between each one is the safest.
+     * From my testing it seems sending requests with a 1 second delay
+     * between each one is ok.
      */
 
-    return this.client.patch(`domains/${domain.domainName}`, {
-      locked: domain.locked,
-      nameServers: domain.nameServers,
-      renewAuto: domain.hasAutoRenewal,
-      exposeWhois: !domain.hasPrivacy,
-    });
+    // Ensure we're only working against GoDaddy domains,
+    // yes this is perhaps overkill and since we have
+    // control of what is being passed in this shouldn't be needed
+    const filteredDomains = domains.filter((d) => d.registrar === this.name);
+
+    const result = {
+      acceptedDomains: [],
+      rejectedDomains: [],
+    };
+
+    for (const domain of filteredDomains) {
+      try {
+        if (operation === updateOperations.CONTACTS) {
+          await this.client.patch(`domains/${domain.domainName}/contacts`, {
+            contactAdmin: domain.contactAdmin,
+            contactBilling: domain.contactBilling,
+            contactRegistrant: domain.contactRegistrant,
+            contactTech: domain.contactTech,
+          });
+          // If it gets here then it is successful
+          acceptedDomains.push({
+            domainName: domain.domainName,
+          });
+        } else {
+          // At least with GoDaddy we can update all the rest without
+          // separate API calls
+          await this.client.patch(`domains/${domain.domainName}`, {
+            nameServers: domain.nameServers,
+            renewAuto: domain.hasAutoRenewal,
+            exposeWhois: !domain.hasPrivacy,
+          });
+        }
+      } catch (ex) {
+        result.rejectedDomains.push({
+          domainName: domain.domainName,
+          statusCode: ex.response.status,
+        });
+      }
+
+      // Sleep for half a second before making the next request
+      // @todo: Move this to config? Decrease it?
+      await new Promise((r) => setTimeout(r, 1000));
+    }
+
+    return result;
   }
 
   check() {
@@ -117,10 +164,6 @@ class GoDaddyClient {
     return this.client.get("domains/tlds");
   }
 
-  /**
-   * @access private
-   * @param {*} data
-   */
   parseDomains(data) {
     const domains = [];
     data.forEach((item) => {
@@ -129,10 +172,6 @@ class GoDaddyClient {
     return domains;
   }
 
-  /**
-   * @access private
-   * @param {*} data
-   */
   parseDomain(data) {
     if (data) {
       return {
@@ -156,11 +195,6 @@ class GoDaddyClient {
     throw new Error("Invalid data!");
   }
 
-  /**
-   * Helper for the above parseDomain method
-   * @param {object} contact
-   * @access private
-   */
   parseContact(contact) {
     if (contact) {
       return {

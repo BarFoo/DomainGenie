@@ -5,8 +5,9 @@ const path = require("path");
 const { fork } = require("child_process");
 
 /**
- * Function encapsulating ipc main handles and registrar processes
+ * Function encapsulating registrar related IPC and child process
  * @param {BrowserWindow} The browser window send process responses to
+ * @todo Split this out even further
  */
 export default function () {
   let checkRegistrarProcess;
@@ -29,7 +30,14 @@ export default function () {
       );
 
       checkRegistrarProcess.on("message", (data) => {
-        evt.reply("checkedRegistrar", data);
+        log.debug("Received result from checkRegistrarProcess", data);
+        if (data._completed) {
+          // For the process finishing
+          evt.reply("checkRegistrarsComplete");
+        } else {
+          // For individual process updates
+          evt.reply("checkedRegistrar", data);
+        }
       });
 
       log.debug("Setup checkRegistrarProcess");
@@ -56,7 +64,11 @@ export default function () {
       );
 
       getAllDomainsProcess.on("message", (data) => {
-        evt.reply("getAllDomainsCompleted", data);
+        if (data._completed) {
+          evt.reply("getAllDomainsCompleted");
+        } else {
+          evt.reply("getAllDomainsUpdate", data);
+        }
       });
 
       log.debug("Setup getAllDomainsProcess");
@@ -69,7 +81,6 @@ export default function () {
     getAllDomainsProcess.send(registrarSettings);
   });
 
-  // Kill the registrar related processes when the app is closed
   app.on("window-all-closed", function () {
     if (checkRegistrarProcess) checkRegistrarProcess.kill();
     if (getAllDomainsProcess) getAllDomainsProcess.kill();

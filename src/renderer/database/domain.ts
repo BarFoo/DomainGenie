@@ -32,4 +32,5 @@ interface Contact {
   lastName?: string;
   organization?: string;
   phone?: string;
+  contactId?: any;
 }

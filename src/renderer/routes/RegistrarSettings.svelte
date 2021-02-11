@@ -11,9 +11,7 @@
     gdApiKey: "",
     gdSecret: "",
     dynadotApiKey: "",
-    nameSiloApiKey: "",
-    namecheapKey: "",
-    namecheapUser: ""
+    nameSiloApiKey: ""
   };
 
   let isLoading: boolean = true;
@@ -92,27 +90,6 @@
           </p>
         </div>
         <TextField name="namesiloAPIKey" label="API Key" bind:value={settings.nameSiloApiKey} />
-      </div>
-        
-      <div class="pt-6">
-        <div class="mb-4">
-          <h2 class="text-lg leading-6 font-medium">
-            {$_("registrars_route.namecheap_settings")}
-          </h2>
-          <p class="mt-1 text-sm">
-            {$_("registrars_route.namecheap_key_message_one")}
-            <a href="https://ap.www.namecheap.com/settings/tools" class="external">https://ap.www.namecheap.com/settings/tools</a>.
-            {$_("registrars_route.namecheap_key_message_two")}
-          </p>
-        </div>
-        <div class="mt-4 grid grid-cols-4 gap-6">
-          <div class="col-span-2">
-            <TextField name="namecheapKey" label="API Key" bind:value={settings.namecheapKey} />
-          </div>
-          <div class="col-span-2">
-            <TextField name="namecheapUser" label="API User" bind:value={settings.namecheapUser} />
-          </div>
-        </div>
       </div>
     </div>
     <div class="text-xs text-gray-400 px-5">

@@ -41,6 +41,16 @@ async function checkRegistrars(registrarSettings) {
     );
     process.send(await doCheck(dynadotClient));
   }
+
+  if (clientFactory.hasClient(clientNames.NAMESILO, registrarSettings)) {
+    const namesiloClient = clientFactory.createClient(
+      clientNames.NAMESILO,
+      registrarSettings
+    );
+    process.send(await doCheck(namesiloClient));
+  }
+
+  process.send({ _completed: true });
 }
 
 /**

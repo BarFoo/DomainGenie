@@ -14,7 +14,7 @@
   import type { CheckedRegistrarNotification } from "./interfaces/checkRegistrarNotification";
   import { toast } from '@zerodevx/svelte-toast';
   import { successTheme, errorTheme, warningTheme } from "./toastThemes";
-  import type { GetAllDomainsCompleted } from "./interfaces/getAllDomainsCompleted";
+  import type { GetAllDomainsUpdate } from "./interfaces/getAllDomainsUpdate"
 
   // Handle check registrar notification response
   window.electronApi.receive("checkedRegistrar", (result: CheckedRegistrarNotification) => {
@@ -23,6 +23,7 @@
         theme: successTheme
       });
     } else {
+      console.log(result.exception);
       appNotification(
         $_("notifications.check_registrar_invalid_title", { values: { registrar: result.registrar}}),
         $_("notifications.check_registrar_invalid_message", { values: { registrar: result.registrar}})
@@ -34,21 +35,35 @@
         }
       );
     }
+  });
+
+  window.electronApi.receive("checkRegistrarsComplete", () => {
+    console.log("Check Registrars Complete");
     $isCheckingRegistrars = false;
   });
 
-  window.electronApi.receive("getAllDomainsCompleted", async (result: GetAllDomainsCompleted) => {
-    // Get the count before we put, and the count after so that we can determine how many were updated
-    // and how many were imported.
+  window.electronApi.receive("getAllDomainsUpdate", async (result: GetAllDomainsUpdate) => {
+
+    if(!result.isValid) {
+      console.log(result.error);
+      toast.push(
+        `${$_("notifications.sync_domains_rejected_registrar", { values: { registrar: result.registrar}})}`,
+        {
+          theme: errorTheme,
+          duration: 20000
+        }
+      );
+      return;
+    }
+
     if(result.domains.length === 0) {
       toast.push(
-        `${$_("no_domains")}`,
+        `${$_("no_domains", { values: { registrar: result.registrar}})}`,
         {
           theme: warningTheme,
           duration: 10000
         }
       );
-      $isSyncingDomains = false;
       return;
     }
 
@@ -62,28 +77,16 @@
       }
     });
 
-    const beforeCount = await $appDatabase.domains.count();
+    const beforeCount = await $appDatabase.domains.where("registrar").equals(result.registrar).count();
     await $appDatabase.domains.bulkPut(result.domains);
-    const afterCount = await $appDatabase.domains.count();
+    const afterCount = await $appDatabase.domains.where("registrar").equals(result.registrar).count();
 
     const domainsAdded = afterCount - beforeCount;
     const domainsUpdated = afterCount - domainsAdded;
 
-    if(result.rejectedClients && result.rejectedClients.length > 0) {
-      result.rejectedClients.forEach((registrar) => {
-        toast.push(
-          `${$_("notifications.sync_domains_rejected_registrar", { values: { registrar}})}`,
-          {
-            theme: errorTheme,
-            duration: 20000
-          }
-        );
-      });
-    }
-
     if(domainsAdded > 0) {
       toast.push(
-        `${$_("notifications.sync_domains_completed_added", { values: { domainsAdded}})}`,
+        `${$_("notifications.sync_domains_completed_added", { values: { domainsAdded, registrar: result.registrar}})}`,
         {
           theme: successTheme,
           duration: 20000 // This keeps the toast indefinitely
@@ -93,20 +96,21 @@
 
     if(domainsUpdated > 0) {
       toast.push(
-        `${$_("notifications.sync_domains_completed_updated", { values: { domainsUpdated}})}`,
+        `${$_("notifications.sync_domains_completed_updated", { values: { domainsUpdated, registrar: result.registrar}})}`,
         {
           theme: successTheme,
           duration: 20000 // This keeps the toast indefinitely
         }
       );
     }
+  });
 
-    if(domainsAdded > 0 || domainsUpdated > 0) {
-      appNotification(
-        `${$_("notifications.sync_domains_completed_title")}`,
-        `${$_("notifications.sync_domains_completed_message")}`
-      )
-    }
+  window.electronApi.receive("getAllDomainsCompleted", () => {
+    
+    appNotification(
+      `${$_("notifications.sync_domains_completed_title")}`,
+      `${$_("notifications.sync_domains_completed_message")}`
+    );
     
     $isSyncingDomains = false;
     $hasSyncCompleted = true;

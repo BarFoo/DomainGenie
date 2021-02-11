@@ -19,7 +19,12 @@ contextBridge.exposeInMainWorld("electronApi", {
     }
   },
   receive: (channel, func) => {
-    let validChannels = ["checkedRegistrar", "getAllDomainsCompleted"];
+    let validChannels = [
+      "checkedRegistrar",
+      "getAllDomainsCompleted",
+      "getAllDomainsUpdate",
+      "checkRegistrarsComplete",
+    ];
     if (validChannels.includes(channel)) {
       // Deliberately strip event as it includes `sender`
       ipcRenderer.on(channel, (event, ...args) => func(...args));

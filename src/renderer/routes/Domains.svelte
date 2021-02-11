@@ -157,7 +157,6 @@ import Alert from "../shared/Alert.svelte";
     if($isSyncingDomains) {
       return;
     }
-    $isSyncingDomains = true;
     // @todo Sort out this awful name, but what is a better alternative? 
     // startSyncAllDomains()? triggerSyncAllDomains()?
     $registrarService.getAllDomains();

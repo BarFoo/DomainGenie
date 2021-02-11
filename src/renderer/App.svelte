@@ -101,6 +101,6 @@ import { hasEnteredPassword } from "./stores";
   }
 
   a {
-    @apply text-steel-700;
+    @apply text-steel-600;
   }
 </style>

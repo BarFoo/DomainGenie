@@ -86,7 +86,7 @@
   "syncing_domains_title": "Syncing Domains",
   "syncing_domains_message": "The genie is fetching your domains",
   "syncing_domains_message_two": "Please do not close the window or your wish may not be granted",
-  "no_domains": "No domains came back!",
+  "no_domains": "No domains came back for {registrar}",
 
   "domains_route": {
     "please_wait": "Please wait, this could take several minutes",
@@ -134,8 +134,8 @@
     "check_registrar_valid_message": "{registrar} is working as expected",
     "sync_domains_completed_title": "Sync Completed",
     "sync_domains_completed_message": "The genie has finished working his magic",
-    "sync_domains_completed_added": "{domainsAdded} domains added",
-    "sync_domains_completed_updated": "{domainsUpdated} domains updated",
+    "sync_domains_completed_added": "{domainsAdded} domains added from {registrar}",
+    "sync_domains_completed_updated": "{domainsUpdated} domains updated from {registrar}",
     "sync_domains_rejected_registrar": "{registrar} failed to import"
   }
 }

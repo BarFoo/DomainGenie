@@ -3,10 +3,6 @@ import clientFactory from "../clients/clientFactory";
 
 async function getAllDomains(registrarSettings) {
   const clientsToCall = [];
-  const result = {
-    domains: [],
-    rejectedClients: [],
-  };
 
   if (clientFactory.hasClient(clientNames.GODADDY, registrarSettings)) {
     const goDaddyClient = clientFactory.createClient(
@@ -24,17 +20,34 @@ async function getAllDomains(registrarSettings) {
     clientsToCall.push(dynadotClient);
   }
 
+  if (clientFactory.hasClient(clientNames.NAMESILO, registrarSettings)) {
+    const namesiloClient = clientFactory.createClient(
+      clientNames.NAMESILO,
+      registrarSettings
+    );
+    clientsToCall.push(namesiloClient);
+  }
+
   for (const client of clientsToCall) {
+    const result = {
+      domains: [],
+      isValid: false,
+      error: null,
+      registrar: client.getName(),
+    };
     try {
       const domains = await client.getDomains();
       // If it gets and doesn't throw it means we got the domain successfully
       domains.forEach((domain) => result.domains.push(domain));
+      result.isValid = true;
     } catch (ex) {
-      result.rejectedClients.push(client.getName());
+      result.isRejected = true;
+      result.error = ex;
     }
+    process.send(result);
   }
 
-  process.send(result);
+  process.send({ _completed: true });
 }
 
 process.on("message", (registrarSettings) => {
