@@ -20,7 +20,9 @@
     "win": {
       "icon": "public/icon.png"
     },
-    "mac": {},
+    "mac": {
+      "icon": "public/icon.icns"
+    },
     "extraFiles": [
       "public/genie.png",
       "public/icon.png"
