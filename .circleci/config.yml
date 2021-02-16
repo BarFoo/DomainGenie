@@ -6,6 +6,7 @@ jobs:
       - image: electronuserland/builder:wine
     steps:
       - checkout
+      - run: npm install
       - run: npm run build && npm run dist
 
   build_macos:
@@ -13,6 +14,7 @@ jobs:
       xcode: "10.0.0"
     steps:
       - checkout
+      - run: npm install
       - run: npm run build && npm run dist
 
 workflows:
