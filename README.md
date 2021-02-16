@@ -15,5 +15,3 @@ At this moment in time your domains are NOT encrypted but again are only stored 
 If you do not agree with this, please DO NOT use this software.
 
 I will explore options for encrypting domain domain data without impacting performance.
-
-In my humble opinion domain names are not sensitive data, so I'd love any feedback on this.
