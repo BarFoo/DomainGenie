@@ -23,6 +23,8 @@ deploy:
   file: dist/*.zip
   overwrite: true
   skip_cleanup: true
+  on:
+    branches: master
 
 before_cache:
   - rm -rf $HOME/.cache/electron-builder/wine
