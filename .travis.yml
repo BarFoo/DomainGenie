@@ -16,16 +16,13 @@ cache:
 
 script: npm run build && npm run dist
 
-jobs:
-  include:
-    - script: echo "Deploying to Github Releases"
-    - stage: Github Release
-      script: skip
-      deploy:
-        provider: releases
-        api_key: $GITHUB_OAUTH_TOKEN
-        file: dist/Domain Genie-0.1.0-mac.zip
-        skip_cleanup: true
+deploy:
+  provider: releases
+  api_key: $GITHUB_OAUTH_TOKEN
+  file_glob: true
+  file: dist/*.zip
+  overwrite: true
+  skip_cleanup: true
 
 before_cache:
   - rm -rf $HOME/.cache/electron-builder/wine
