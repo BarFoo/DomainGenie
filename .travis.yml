@@ -7,6 +7,8 @@ matrix:
       env:
         - ELECTRON_CACHE=$HOME/.cache/electron
         - ELECTRON_BUILDER_CACHE=$HOME/.cache/electron-builder
+    - os: windows
+      node_js: "14"
 
 cache:
   directories:
@@ -24,9 +26,7 @@ deploy:
   overwrite: true
   skip_cleanup: true
   on:
-    branches:
-      only:
-        - master
+    tags: true
 
 before_cache:
   - rm -rf $HOME/.cache/electron-builder/wine
