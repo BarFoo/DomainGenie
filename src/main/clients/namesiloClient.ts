@@ -1,22 +1,30 @@
-import updateOperations from "./updateOperations";
+import { UpdateOperation } from "../constants";
 import { chunkArray, dedupe, sleep } from "../utils";
-const axios = require("axios");
-const xmlToJs = require("xml-js");
+import axios, { AxiosInstance } from "axios";
+import xmlJs from "xml-js";
+import type { RegistrarClient } from "./registrarClient";
+import type { Domain } from "../interfaces/domain";
+import type { Contact } from "../interfaces/contact";
+import callingCodes from "../data/callingCodes";
+import type { DomainUpdate } from "../interfaces/domainUpdate";
 
-export default class NamesiloClient {
+export default class NamesiloClient implements RegistrarClient {
+  private name: string = "NameSilo";
+
+  // How long to sleep, in milliseconds, between each getDomainInfo request
+  // so we don't get bannned, or between other operations
+  private sleepTime: number = 125;
+
+  // Ahh the challenges of merging different registrars all with different APIs
+  private successCode: string = "300";
+  private invalidApiKeyCode: string = "110";
+
+  private nameServerChunkSize: number = 200;
+  private xmlToJsonOptions: any;
+  private client: AxiosInstance;
+
   constructor(keys) {
     const baseURL = "https://www.namesilo.com/api/";
-    this.name = "NameSilo";
-
-    // How long to sleep, in milliseconds, between each getDomainInfo request
-    // so we don't get bannned, or between other operations
-    this.sleep = 250;
-
-    // Namesilo's success code for successful operations
-    this.successCode = "300";
-
-    // Update name server chunk size
-    this.nameServerChunkSize = 200;
 
     this.xmlToJsonOptions = {
       compact: true,
@@ -43,7 +51,7 @@ export default class NamesiloClient {
     });
   }
 
-  async getDomains() {
+  async getDomains(): Promise<Domain[]> {
     /**
      * Ok so NameSilo's API is awkward.. the domain list command only returns the domain names themselves
      * so we will need to fire off continuous requests to fetch info for all the domains.
@@ -71,149 +79,115 @@ export default class NamesiloClient {
       );
 
       // Sleep between each domain info request so we don't get banned
-      await new Promise((r) => setTimeout(r, this.sleep));
+      await new Promise((r) => setTimeout(r, this.sleepTime));
     }
 
     return domains;
   }
 
-  async getContacts() {
+  async updateDomains(
+    domainNames: string[],
+    data: DomainUpdate,
+    partialCallback: Function
+  ) {
+    if (data.nameServers) {
+      await this.updateNameServers(domainNames, data.nameServers, (chunk) => {
+        chunk.forEach((domainName) => {
+          partialCallback(domainName);
+        });
+      });
+    }
+
+    if (
+      data.contactAdmin &&
+      data.contactBilling &&
+      data.contactRegistrant &&
+      data.contactTech
+    ) {
+      const contacts = [
+        data.contactAdmin,
+        data.contactBilling,
+        data.contactRegistrant,
+        data.contactTech,
+      ];
+      const uniqueContacts = dedupe(contacts, "contactId");
+      for (const contact of uniqueContacts) {
+        await this.updateContact(contact);
+        await sleep(this.sleepTime);
+      }
+    } else if(data.contact && data.contactIds) {
+      // Bulk update, also use the corresponding contact ids to update
+      const uniqueContactIds = [...new Set(data.contactIds)];
+      for(const contactId of uniqueContactIds) {
+        await this.updateContact({
+          contactId: contactId,
+          ...data.contact
+        });
+        await sleep(this.sleepTime);
+      }
+    }
+
+    if ("hasAutoRenewal" in data) {
+      for (const domainName of domainNames) {
+        await this.updateAutoRenewal(domainName, data.hasAutoRenewal);
+
+        await sleep(this.sleepTime);
+      }
+    }
+
+    if ("hasPrivacy" in data) {
+      for (const domainName of domainNames) {
+        await this.updatePrivacy(domainName, data.hasPrivacy);
+        await sleep(this.sleepTime);
+      }
+    }
+  }
+
+  private async getContacts() {
     const response = await this.client.get("contactList");
     return await this.parseContactResponse(response);
   }
 
-  async updateDomains(domains, operation, partialCallback) {
-    const filteredDomains = domains.filter((d) => d.registrar === this.name);
-
-    if (filteredDomains.length === 0) {
-      return Promise.reject("No domains given!");
-    }
-
-    const result = {
-      acceptedDomains: [],
-      rejectedDomains: [],
-    };
-
-    // Supported bulk operations
-    if (operation === updateOperations.NAMESERVERS) {
-      // If its only one or bulk update, each domain will have the same nameServers
-      // so use the first ones nameservers
-      const ns = filteredDomains[0].nameServers;
-      let currentChunk;
-      try {
-        await this.updateNameservers(
-          filteredDomains.map((d) => d.domainName),
-          ns,
-          currentChunk
-        );
-        if (currentChunk && Array.isArray(currentChunk)) {
-          currentChunk.forEach((domainName) => {
-            result.acceptedDomains.push({
-              domainName,
-            });
-          });
-        }
-      } catch (ex) {
-        if (currentChunk && Array.isArray(currentChunk)) {
-          currentChunk.forEach((domainName) => {
-            result.rejectedDomains.push({
-              domainName,
-              statusCode: ex.response.status,
-            });
-          });
-        }
-      }
-
-      return result;
-    }
-
-    // Individual operations
-    for (const domain of filteredDomains) {
-      try {
-        if (operation === updateOperations.CONTACTS) {
-          const contacts = [
-            domain.contactAdmin,
-            domain.contactBilling,
-            domain.contactRegistrant,
-            domain.contactTech,
-          ];
-          const uniqueContacts = dedupe(contacts, "contactId");
-          for (const contact of uniqueContacts) {
-            await this.updateContact(contact);
-          }
-          result.acceptedDomains.push({
-            domainName: domain.domainName,
-          });
-        }
-      } catch (ex) {
-        result.rejectedDomains.push({
-          domainName: domain.domainName,
-          statusCode: ex.response.status,
-        });
-      }
-    }
-
-    return result;
-  }
-
-  async updateAutoRenew(domain) {
-    let response;
-    if (domain.hasAutoRenewal) {
-      response = await this.client.get("addAutoRenewal", {
-        params: {
-          domain: domain.domainName,
-        },
-      });
-    } else {
-      response = await this.client.get("removeAutoRenewal", {
-        params: {
-          domain: domain.domainName,
-        },
-      });
-    }
-
-    return this.parseResponse(response);
-  }
-
-  async updateContact(contact) {
+  private async updateContact(contact: Contact) {
     const response = await this.client.get("contactUpdate", {
       params: {
         contact_id: contact.contactId,
         fn: contact.firstName,
         ln: contact.lastName,
-        ad: `${contact.addressLineOne} ${contact.addressLineTwo}`,
+        ad: `${contact.addressLineOne} ${contact.addressLineTwo}`.trim(),
         cy: contact.city,
         st: contact.state,
         zp: contact.postalCode,
         ct: contact.country,
         em: contact.email,
-        ph: contact.phone,
+        ph: this.stripPhoneCc(contact.phone),
       },
     });
 
-    return this.parseResponse(response);
-  }
+    const reply = this.parseResponse(response);
 
-  async updatePrivacy(domain) {
-    let response;
-    if (domain.hasPrivacy) {
-      response = await this.client.get("addPrivacy", {
-        params: {
-          domain: domain.domainName,
-        },
-      });
-    } else {
-      response = await this.client.get("removePrivacy", {
-        params: {
-          domain: domain.domainName,
-        },
-      });
+    if (reply.code._text !== this.successCode) {
+      throw new Error(reply.code._text);
     }
-
-    return this.parseResponse(response);
   }
 
-  async updateNameservers(domainNames, nameServers, currentChunk) {
+  private stripPhoneCc(phone: string) {
+    for (const code of Object.entries(callingCodes)) {
+      if (phone.startsWith(code[1])) {
+        phone = phone.substring(code[1].length, phone.length);
+        break;
+      }
+    }
+    phone = phone.replace("+", "").replace(".", "");
+
+    return phone;
+  }
+
+  private async updateNameServers(
+    domainNames: string[],
+    nameServers: string[],
+    chunkCallback: Function
+  ) {
     // Namesilo supports updating up to 200 domains at once, so
     // we have to do them in batches of 200
 
@@ -221,7 +195,6 @@ export default class NamesiloClient {
     const chunks = chunkArray(domainNames, this.nameServerChunkSize);
 
     for (const chunk of chunks) {
-      currentChunk = chunk;
       // Namesilo expects a comma delimited string of domains
       const params = {
         domain: chunk.join(","),
@@ -234,11 +207,65 @@ export default class NamesiloClient {
         params[`ns${index + 1}`] = nameServer;
       });
 
-      await this.client.get("changeNameServers", {
+      const response = await this.client.get("changeNameServers", {
         params,
       });
 
-      await sleep(this.sleep);
+      const reply = this.parseResponse(response);
+
+      if (reply.code._text !== this.successCode) {
+        throw new Error(reply.code._text);
+      }
+
+      chunkCallback(chunk);
+
+      await sleep(this.sleepTime);
+    }
+  }
+
+  private async updatePrivacy(domainName: string, hasPrivacy: boolean) {
+    let response;
+    if (hasPrivacy) {
+      response = await this.client.get("addPrivacy", {
+        params: {
+          domain: domainName,
+        },
+      });
+    } else {
+      response = await this.client.get("removePrivacy", {
+        params: {
+          domain: domainName,
+        },
+      });
+    }
+
+    const reply = this.parseResponse(response);
+
+    if (reply.code._text !== this.successCode) {
+      throw new Error(reply.code._text);
+    }
+  }
+
+  private async updateAutoRenewal(domainName: string, autoRenew: boolean) {
+    let response;
+    if (autoRenew) {
+      response = await this.client.get("addAutoRenewal", {
+        params: {
+          domain: domainName,
+        },
+      });
+    } else {
+      response = await this.client.get("removeAutoRenewal", {
+        params: {
+          domain: domainName,
+        },
+      });
+    }
+
+    const reply = this.parseResponse(response);
+
+    if (reply.code?._text !== this.successCode) {
+      throw new Error(reply.code._text);
     }
   }
 
@@ -248,9 +275,9 @@ export default class NamesiloClient {
    * @access private
    * @param {*} response
    */
-  parseResponse(response) {
+  private parseResponse(response) {
     const data = JSON.parse(
-      xmlToJs.xml2json(response.data, this.xmlToJsonOptions)
+      xmlJs.xml2json(response.data, this.xmlToJsonOptions)
     );
 
     return data.namesilo.reply;
@@ -261,8 +288,9 @@ export default class NamesiloClient {
    * @param {*} response
    * @param {*} contacts
    * @param {*} domainName
+   * @returns Reply
    */
-  async parseDomainResponse(response, contacts, domainName) {
+  private async parseDomainResponse(response, contacts, domainName) {
     const reply = this.parseResponse(response);
 
     if (reply.code._text !== this.successCode) {
@@ -303,7 +331,7 @@ export default class NamesiloClient {
    * @access private
    * @param {*} response
    */
-  async parseDomainListResponse(response) {
+  private async parseDomainListResponse(response) {
     const reply = this.parseResponse(response);
 
     if (reply.code?._text !== this.successCode) {
@@ -327,7 +355,7 @@ export default class NamesiloClient {
    * @access private
    * @param {*} response
    */
-  parseContactResponse(response) {
+  private parseContactResponse(response) {
     const reply = this.parseResponse(response);
 
     // @todo Handle multiple response codes
@@ -340,6 +368,15 @@ export default class NamesiloClient {
     const contacts = [];
 
     const parseContact = (contact) => {
+      // NameSilo doesn't return a calling code or anything.. we just insert the + and . character
+      // so it conforms to our format, and if they save with this it gets parsed at the other end.
+      // It's very messy yes and I will think of a better way than this.
+      let phoneNumber: string = contact.phone?._text ?? null;
+      if(phoneNumber) {
+        // Just in case NS go funky on us..
+        phoneNumber = phoneNumber.replace("+", "").replace(".", "");
+        phoneNumber = `+${phoneNumber.slice(0, 2)}.${phoneNumber.slice(2)}`;
+      }
       contacts.push({
         contactId: contact.contact_id?._text,
         addressLineOne: contact.address?._text,
@@ -352,7 +389,7 @@ export default class NamesiloClient {
         firstName: contact.first_name?._text,
         lastName: contact.last_name?._text,
         organization: contact.company?._text,
-        phone: contact.phone?._text,
+        phone: phoneNumber,
       });
     };
 
@@ -360,29 +397,24 @@ export default class NamesiloClient {
     if (!Array.isArray(reply.contact)) {
       contacts.push(parseContact(reply.contact));
     } else {
-      reply.contact.forEach((contact) => {
-        contacts.push(contact);
+      reply.contact.forEach((c) => {
+        contacts.push(parseContact(c));
       });
     }
 
     return contacts;
   }
 
-  async check() {
+  async validateKeys() {
     // Again, the only way to test if the api key is valid is to call the least
     // expensive API operation, which in Namesilo's case is contactList afaik
-    const response = await this.client.get(
-      `contactList?version=${this.apiVersion}&type=xml&key=${this.apiKey}`
-    );
-
+    const response = await this.client.get("contactList");
     const reply = this.parseResponse(response);
 
     // 110 status code means invalid API key
-    if (reply.code?._text === "110") {
+    if (reply.code._text === this.invalidApiKeyCode) {
       return Promise.reject("Invalid API key");
     }
-
-    return Promise.resolve(true);
   }
 
   getName() {

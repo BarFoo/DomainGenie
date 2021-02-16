@@ -5,20 +5,18 @@
   import Icon from "../shared/Icon.svelte";
   import SideMenuItem from "../shared/SideMenuItem.svelte";
   import { appDatabase, singleDomainEdit } from "../stores";
-  import DomainAutoRenewal from "./DomainAutoRenewal.svelte";
   import DomainContacts from "./DomainContacts.svelte"; 
   import DomainNameServers from "./DomainNameServers.svelte";
-  import DomainPrivacy from "./DomainPrivacy.svelte";
+  import DomainOverview from "./DomainOverview.svelte";
   import Layout from "./_Layout.svelte";
 
   // Route params, which contains the domain name to show here
   export let params;
 
   const routes = {
-    "/": DomainNameServers,
-    "/contacts": DomainContacts,
-    "/auto-renewal": DomainAutoRenewal,
-    "/privacy": DomainPrivacy
+    "/": DomainOverview,
+    "/name-servers": DomainNameServers,
+    "/contacts": DomainContacts
   };
 
   let isLoading: boolean = true;
@@ -49,14 +47,12 @@
     <div class="divide-gray-200 flex flex-grow divide-x">
       <aside class="domain-menu py-6">
         <nav>
-          <SideMenuItem href={`/domains/${params.name}`} iconName="server">{$_("name_servers")}</SideMenuItem>
+          <SideMenuItem href={`/domains/${params.name}/`} iconName="dashboard">{$_("overview")}</SideMenuItem>
+          <SideMenuItem href={`/domains/${params.name}/name-servers`} iconName="server">{$_("name_servers")}</SideMenuItem>
           <SideMenuItem href={`/domains/${params.name}/contacts`} iconName="contacts">{$_("contacts")}</SideMenuItem>
-          <SideMenuItem href={`/domains/${params.name}/auto-renewal`} iconName="restart">{$_("auto_renewal")}</SideMenuItem>
-          <SideMenuItem href={`/domains/${params.name}/privacy`} iconName="shield">{$_("privacy")}</SideMenuItem>
         </nav>
       </aside>
-
-      <div class="col-span-9 flex-grow px-5 py-6">
+      <div class="col-span-9 flex-grow">
         <Router {routes} prefix={/^\/domains\/[a-zA-Z\.]+/} />
       </div>
     </div>

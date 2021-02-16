@@ -17,7 +17,9 @@
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex">
           <h1 class="flex-grow text-3xl font-bold">
-            {heading}
+            {#if heading}
+              {heading}
+            {/if}
           </h1>
           <slot name="headerRight" />
         </div>

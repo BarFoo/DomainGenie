@@ -1,4 +1,17 @@
-<div class="max-w-7xl mx-auto px-4">
-  <h1 class="text-2xl font-semibold text-gray-900 mb-4">General Settings</h1>
-  <p>This will be the general settings page.</p>
-</div>
+<script lang="ts">
+  import { _ } from "svelte-i18n";
+  import Button from "../shared/Button.svelte";
+  import Layout from "./_Layout.svelte";
+</script>
+
+<Layout heading={$_("settings")}>
+  <div slot="headerRight">
+    <Button 
+      type="primary"
+      size="large"
+      iconName="sync" 
+      disabled={true}>
+      {$_("save_changes")}
+    </Button>
+  </div>
+</Layout>

@@ -1,37 +1,29 @@
 import DynadotClient from "./dynadotClient";
 import GoDaddyClient from "./godaddyClient";
 import NamesiloClient from "./namesiloClient";
-import clientNames from "./clientNames";
-import NamecheapClient from "./namecheapClient";
+import type { RegistrarSettings } from "../interfaces/registrarSettings";
+
 /**
  * Responsible for creating client instances with necessary data.
  */
 class ClientFactory {
-  createClient(name, registrarSettings) {
-    // This is very simple for now but allows us to abstract out the
-    // client instances
+  createClient(name: string, registrarSettings: RegistrarSettings) {
     let client;
     switch (name) {
-      case clientNames.GODADDY:
+      case "godaddy":
         client = new GoDaddyClient({
           apiKey: registrarSettings.gdApiKey,
           secret: registrarSettings.gdSecret,
         });
         break;
-      case clientNames.DYNADOT:
+      case "dynadot":
         client = new DynadotClient({
           apiKey: registrarSettings.dynadotApiKey,
         });
         break;
-      case clientNames.NAMESILO:
+      case "namesilo":
         client = new NamesiloClient({
           apiKey: registrarSettings.nameSiloApiKey,
-        });
-        break;
-      case clientNames.NAMECHEAP:
-        client = new NamecheapClient({
-          apiKey: registrarSettings.namecheapKey,
-          apiUser: registrarSettings.namecheapUser,
         });
         break;
       default:
@@ -41,32 +33,25 @@ class ClientFactory {
     return client;
   }
 
-  hasClient(name, registrarSettings) {
-    let hasClient;
+  hasClient(name: string, registrarSettings: RegistrarSettings) {
+    let hasClient: boolean = false;
     switch (name) {
-      case clientNames.GODADDY:
+      case "godaddy":
         hasClient =
           registrarSettings.gdApiKey &&
           registrarSettings.gdApiKey.trim() !== "" &&
           registrarSettings.gdSecret &&
           registrarSettings.gdSecret.trim() !== "";
         break;
-      case clientNames.DYNADOT:
+      case "dynadot":
         hasClient =
           registrarSettings.dynadotApiKey &&
           registrarSettings.dynadotApiKey.trim() !== "";
         break;
-      case clientNames.NAMESILO:
+      case "namesilo":
         hasClient =
           registrarSettings.nameSiloApiKey &&
           registrarSettings.nameSiloApiKey.trim() !== "";
-        break;
-      case clientNames.NAMECHEAP:
-        hasClient =
-          registrarSettings.namecheapKey &&
-          registrarSettings.namecheapKey.trim() !== "" &&
-          registrarSettings.namecheapUser &&
-          registrarSettings.namecheapUser.trim() !== "";
         break;
     }
     return hasClient;

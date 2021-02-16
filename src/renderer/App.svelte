@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { addMessages, init, getLocaleFromNavigator } from "svelte-i18n";
+  import { addMessages, init, getLocaleFromNavigator, _ } from "svelte-i18n";
   import en from "./locales/en.json";
   import TailwindCSS from "./TailwindCSS.svelte";
   import EnterPassword from "./EnterPassword.svelte";
@@ -9,12 +9,11 @@
   import Router from "svelte-spa-router";
   import { wrap } from "svelte-spa-router/wrap";
   import Settings from "./routes/Settings.svelte";
-  import MarketplaceSettings from "./routes/MarketplaceSettings.svelte";
   import Home from "./routes/Home.svelte";
   import NotFound from "./routes/NotFound.svelte";
   import { SvelteToast } from "@zerodevx/svelte-toast";
   import NotificationHandler from "./NotificationHandler.svelte";
-import { hasEnteredPassword } from "./stores";
+  import { hasEnteredPassword } from "./stores";
 
   const routes = {
     "/": wrap({
@@ -53,7 +52,6 @@ import { hasEnteredPassword } from "./stores";
         () => $hasEnteredPassword
       ]
     }),
-    "/marketplaces": MarketplaceSettings,
     "*": NotFound
   };
 
@@ -100,7 +98,7 @@ import { hasEnteredPassword } from "./stores";
     @apply text-white;
   }
 
-  a {
-    @apply text-steel-600;
+  :global(a) {
+    @apply text-steel-500;
   }
 </style>

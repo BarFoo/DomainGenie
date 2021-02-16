@@ -7,7 +7,7 @@
   import { onMount } from "svelte";
   import { _, date } from "svelte-i18n";
   import Button from "../shared/Button.svelte";
-  import { fileStoreService, appDatabase, isSyncingDomains, registrarService, hasSyncCompleted } from "../stores";
+  import { fileStoreService, appDatabase, isSyncingDomains, registrarService, hasSyncCompleted, requiresFirstSync, bulkDomainEdit } from "../stores";
   import { push } from "svelte-spa-router";
   import type { Domain } from "../database/domain";
   import Table from "../shared/Table.svelte";
@@ -16,9 +16,11 @@
   import { MenuDirection } from "../constants/menuDirection";
   import FlyoutButton from "../shared/FlyoutButton.svelte";
   import DomainFilters from "./_DomainFilters.svelte";
+  import BulkNameServers from "./_BulkNameServers.svelte";
   import FlyoutMenuItem from "../shared/FlyoutMenuItem.svelte";
   import type { DomainFilters as DomainFitersInterface } from "../interfaces/domainFilters";
-import Alert from "../shared/Alert.svelte";
+  import SlideoutPanel from "../shared/SlideoutPanel.svelte";
+import BulkContacts from "./_BulkContacts.svelte";
 
   // Table column definitions
   const cols: ColumnDefinition[] = [
@@ -69,26 +71,24 @@ import Alert from "../shared/Alert.svelte";
   let isFirstLoad: boolean = true;
   let isLoadingDomains: boolean = false;
 
-  // Whether sync is required, if so we will auto sync the first time
-  let requiresSync: boolean = false;
-
   // Whether to make the domains table checkable
   let checkable: boolean = false;
-  let checkedIndexes: Number[] = [];
+  let checkedIndexes: number[] = [];
+
+  // Slide out bulk edit panels
+  let showNameServerSlideout: boolean = false;
+  let showContactSlideout: boolean = false;
+
+  let isShowingFlyout: boolean = false;
 
   $:{
     // State tracking for filters, to ensure we don't repeatedly call loadDomains over and over
-    if(!isFirstLoad &&
-      (filters.name !== lastFilters.name
-      || filters.nameServer !== lastFilters.nameServer
-      || filters.onlyShowEmptyNameServers !== lastFilters.onlyShowEmptyNameServers
-      || filters.orderBy !== lastFilters.orderBy 
-      || filters.isDescending !== lastFilters.isDescending
-      || filters.expires !== lastFilters.expires)) {
+    if(!isFirstLoad && Object.entries(filters).toString() !== Object.entries(lastFilters).toString()) {
         lastFilters = {...filters};
         loadDomains();
         // Clear selections when reloading domains
         checkedIndexes = [];
+        localStorage.setItem("domainFilters", JSON.stringify(filters));
     }
   }
 
@@ -123,7 +123,8 @@ import Alert from "../shared/Alert.svelte";
     }
 
     if(filters.name && filters.name.trim() !== "") {
-      domainOpts = domainOpts.and(d => d.domainName.indexOf(filters.name) >= 0);
+      const nameFilter = filters.name.toLowerCase();
+      domainOpts = domainOpts.and(d => d.domainName.toLowerCase().indexOf(nameFilter) >= 0);
     }
 
     // @todo: Is this precedence correct? Should this not be OR operation?
@@ -134,14 +135,30 @@ import Alert from "../shared/Alert.svelte";
         || d.nameServers.filter(ns => ns == null).length === d.nameServers.length
       );
     } else if(filters.nameServer && filters.nameServer.trim() !== "") {
-      const ns = filters.nameServer.toLowerCase();
+      const nsFilter = filters.nameServer.toLowerCase();
       domainOpts = domainOpts.and(d => 
         d.nameServers.filter(
-          ns => ns && ns.indexOf(filters.nameServer) >= 0
+          ns => ns && ns.toLowerCase().indexOf(nsFilter) >= 0
         ).length > 0
       );
     }
-    
+
+    if(filters.onlyShowNoAutoRenewal) {
+      domainOpts = domainOpts.and(d => d.hasAutoRenewal == null || !d.hasAutoRenewal);
+    }
+
+    if(filters.onlyShowWithAutoRenewal) {
+      domainOpts = domainOpts.and(d => d.hasAutoRenewal);
+    }
+
+    if(filters.onlyShowNoPrivacy) {
+      domainOpts = domainOpts.and(d => d.hasPrivacy == null || !d.hasPrivacy);
+    }
+
+    if(filters.onlyShowWithPrivacy) {
+      domainOpts = domainOpts.and(d => d.hasPrivacy);
+    }
+
     domains = [...await mapFunction(domainOpts, (doc: Domain) => {
       const parsedDocs = {};
       cols.forEach((col) => {
@@ -171,10 +188,22 @@ import Alert from "../shared/Alert.svelte";
 
   function handleBulkNameServerClick(e: MouseEvent) {
     e.preventDefault();
+    $bulkDomainEdit = [];
+    for(const checkedIndex of checkedIndexes) {
+      $bulkDomainEdit.push(domains[checkedIndex]);
+    }
+    isShowingFlyout = false;
+    showNameServerSlideout = true;
   }
 
   function handleBulkContactsClick(e: MouseEvent) {
     e.preventDefault();
+    $bulkDomainEdit = [];
+    for(const checkedIndex of checkedIndexes) {
+      $bulkDomainEdit.push(domains[checkedIndex]);
+    }
+    isShowingFlyout = false;
+    showContactSlideout = true;
   }
 
   function handleExportClick(e: MouseEvent) {
@@ -190,16 +219,23 @@ import Alert from "../shared/Alert.svelte";
       return;
     }
 
-    // Check if we have any domains at all
+    const existingFilters = localStorage.getItem("domainFilters");
+
+    if(existingFilters) {
+      filters = {...JSON.parse(existingFilters)};
+      lastFilters = {...filters};
+    }
+
     await loadDomains();
 
-    // If no domains come back on initial load it means they require sync
-    // so let's begin auto syncing
-    if(domains.length === 0) {
-      requiresSync = true;
+    // Do a count instead of relying on the above in case of saved filters
+    const domainCount = await $appDatabase.domains.count();
+
+    if(domainCount === 0) {
+      $requiresFirstSync = true;
       handleSync();
     } else {
-      requiresSync = false;
+      $requiresFirstSync = false;
     }
 
     // Marks first load as finished
@@ -209,7 +245,7 @@ import Alert from "../shared/Alert.svelte";
   hasSyncCompleted.subscribe((val) => {
     if(val) {
       loadDomains();
-      requiresSync = false;
+      $requiresFirstSync = false;
       $hasSyncCompleted = false;
     }
   });
@@ -232,10 +268,10 @@ import Alert from "../shared/Alert.svelte";
   </Button>
   </div>
   <div class="flex flex-row flex-grow gap-8 px-5 py-6">
-    {#if isFirstLoad && !requiresSync}
+    {#if isFirstLoad && !$requiresFirstSync}
       <p>{$_("loading")}</p>
-    {:else if !requiresSync}
-      <div class="domain-filters flex flex-col gap-4 text-gray-400">
+    {:else if !$requiresFirstSync}
+      <div class="domain-filters flex flex-col gap-3 text-gray-400">
         <DomainFilters bind:filters={filters} />
       </div>
       <div class="flex flex-col flex-grow min-w-0 flex-shrink">
@@ -256,7 +292,7 @@ import Alert from "../shared/Alert.svelte";
                   {/if}
                 </Button>
                 {#if checkable && checkedIndexes.length > 0}
-                  <FlyoutButton type="success" iconName="command" bold={false} menuDirection={MenuDirection.UP}>
+                  <FlyoutButton type="success" iconName="command" bold={false} menuDirection={MenuDirection.UP} bind:isShowing={isShowingFlyout}>
                     <span slot="text">{$_("domains_route.checked_domains", { values: {checkedDomains: checkedIndexes.length}})}</span>
                     <div slot="menu">
                       <FlyoutMenuItem on:click={handleBulkNameServerClick} iconName="server" href="/">
@@ -271,7 +307,8 @@ import Alert from "../shared/Alert.svelte";
                         <span slot="title">{$_("export_to_csv_title")}</span>
                         <span slot="description">{$_("export_to_csv_description")}</span>
                       </FlyoutMenuItem>
-                    </div></FlyoutButton>
+                    </div>
+                  </FlyoutButton>
                 {/if}
               </div>
               <div class="text-gray-400 text-sm uppercase font-light leading-8">
@@ -283,9 +320,9 @@ import Alert from "../shared/Alert.svelte";
           <p class="text-gray-400">{$_("domains_route.no_domains_message")}</p>
         {/if}
       </div>
-    {:else if requiresSync && $isSyncingDomains}
+    {:else if $requiresFirstSync && $isSyncingDomains}
       <div class="flex flex-col items-center flex-grow">
-        <img src="/genie.png" class="block mb-4 text-center" alt="Genie" />
+        <img src="genie.png" class="block mb-4 text-center" alt="Genie" />
         <p class="mb-2">
           {$_("syncing_domains_message")}
         </p>
@@ -304,6 +341,14 @@ import Alert from "../shared/Alert.svelte";
     {/if}
   </div>
 </Layout>
+
+<SlideoutPanel bind:show={showNameServerSlideout} heading={$_("name_servers")}>
+  <BulkNameServers on:saveChanges={() => { showNameServerSlideout = false; loadDomains(); checkedIndexes = []; }} />
+</SlideoutPanel>
+
+<SlideoutPanel bind:show={showContactSlideout} heading={$_("contacts_all")}>
+  <BulkContacts on:saveChanges={() => { showContactSlideout = false; loadDomains(); checkedIndexes = []; }} />
+</SlideoutPanel>
 
 <style>
   .domain-filters {

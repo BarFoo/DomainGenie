@@ -6,8 +6,14 @@ import RegistrarService from "./services/registrarService";
 
 export const isCheckingRegistrars = writable(false);
 export const isSyncingDomains = writable(false);
+
+// Will be true when sync domains has completed
 export const hasSyncCompleted = writable(false);
+
 export const isUpdatingDomains = writable(false);
+
+// Whether a first sync is required.. assumed true at first until told otherwise
+export const requiresFirstSync = writable(true);
 
 // State tracking if password is entered, used by the router
 // pre-conditions, to prevent components from being loaded
@@ -26,3 +32,5 @@ export const registrarService = readable<RegistrarService>(null, (set) =>
 
 // Intentionally to be used as a store for the current domain being edited
 export const singleDomainEdit = writable<Domain>(null);
+
+export const bulkDomainEdit = writable<Domain[]>([]);

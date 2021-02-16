@@ -1,1 +1,0 @@
-<p>Auto renewal</p>

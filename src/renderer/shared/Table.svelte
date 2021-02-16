@@ -14,7 +14,7 @@
   // Whether check all is checked (the header check all, which selects all items)
   export let isCheckAll: boolean = false;
 
-  export let checkedIndexes: Number[] = [];
+  export let checkedIndexes: number[] = [];
 
   function handleRowClicked(index: number) {
     // Only dispatch this event if no items are checked, otherwise handle checking this item instead.
@@ -22,7 +22,6 @@
     if(!checkable) {
       dispatch("rowClick", item);
     } else {
-      item.checked = !item.checked;
       const matchingIndex = checkedIndexes.indexOf(index);
       if(matchingIndex === -1) {
         checkedIndexes = [...checkedIndexes, index];
@@ -35,15 +34,6 @@
 
   function handleHeaderClick(col: ColumnDefinition) {
     dispatch("headerClick", col.key);
-  }
-
-  function handleRowChecked(index: number) {
-    const item = items[index];
-    if(item.checked) {
-      dispatch("rowChecked", item);
-    } else {
-      dispatch("rowUnchecked", item);
-    }
   }
 
   function handleCheckAll() {
@@ -89,7 +79,7 @@
         class:border-none={index === items.length - 1}>
           {#if checkable}
             <div class="px-6 py-4 w-2 max-w-xs">
-                <Checkbox forceChecked={checkedIndexes.indexOf(index) >= 0} on:change={(e) => handleRowChecked(index)} size="small" />
+                <Checkbox forceChecked={checkedIndexes.indexOf(index) >= 0} on:change={(e) => handleRowClicked(index)} size="small" />
               </div>
           {/if}
           {#each cols as col}

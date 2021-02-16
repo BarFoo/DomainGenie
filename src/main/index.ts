@@ -1,27 +1,19 @@
 import { app, BrowserWindow } from "electron";
 import { getAssetURL } from "electron-snowpack";
-import * as path from "path";
-import registrarBootstrap from "./bootstrappers/registrars";
-import fileStoreBootstrap from "./bootstrappers/fileStore";
-
-const debug = require("electron-debug");
+import path from "path";
+import registrarBootstrap from "./startup/registrars";
+import fileStoreBootstrap from "./startup/fileStore";
+//import debug from "electron-debug";
 
 // Keep a global reference of the window object, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.
 let window;
-
-function isDev() {
-  return process.env.MODE !== "production";
-}
 
 function createWindow() {
   window = new BrowserWindow({
     width: 1200,
     height: 800,
     title: "Domain Genie BETA",
-    icon: isDev()
-      ? path.join(process.cwd(), "public/icon.png")
-      : path.join(__dirname, "public/icon.png"),
     show: false,
     // Hacky workaround to weird dev tools dark mode bug
     // See https://stackoverflow.com/questions/63165985/electron-browserwindow-switches-to-dark-mode-when-opening-devtools
@@ -30,7 +22,7 @@ function createWindow() {
       nodeIntegration: false,
       contextIsolation: true,
       enableRemoteModule: false,
-      preload: path.join(__dirname, "preload.js"),
+      preload: path.resolve(path.join(__dirname, "preload.script.js")),
     },
   });
 
@@ -74,9 +66,10 @@ if (!singleInstanceLock) {
   app.on("ready", async () => {
     createWindow();
 
-    debug({
+    // Comment this out before a production build!
+    /*debug({
       showDevTools: false,
-    });
+    });*/
 
     registrarBootstrap();
     fileStoreBootstrap();

@@ -12,9 +12,9 @@
   export let uppercase: boolean = true;
   export let bold: boolean = true;
   export let size: string = "default";
+  export let isShowing: boolean = false;
 
   let flyoutIconName: string;
-  let isShowing: boolean = false;
   let flyoutButtonRef: HTMLElement;
   let flyoutMenuPosLeft: number;
 
@@ -60,9 +60,7 @@
 </div>
 
 <style>
-  /* The flyout button z-index must be higher than the backdrop and menu, those are 50 and 100 respectively */
   .flyout-button {
-    z-index: 500;
     position: absolute;
     left: 0;
     top: 0;

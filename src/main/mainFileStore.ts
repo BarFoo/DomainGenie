@@ -1,14 +1,14 @@
-const Store = require("electron-store");
+import Store from "electron-store";
 
 class MainFileStore {
-  store;
+  store: Store;
 
   /**
    * Initialize the store with the given encryption key. This can be used for both
    * initialization and resetting, though I may split the two out in future if needed.
    * @param {string} encryptionKey
    */
-  init(encryptionKey) {
+  init(encryptionKey: string) {
     let isValid = false;
     try {
       this.store = new Store({
@@ -27,7 +27,7 @@ class MainFileStore {
    * @param {string} name
    * @param {*} value
    */
-  set(name, value) {
+  set(name: string, value: any) {
     if (this.store) {
       this.store.set(name, value);
     } else {
@@ -37,9 +37,10 @@ class MainFileStore {
 
   /**
    * Get the value of the given name from the store
-   * @param {*} name
+   * @param {string} name
+   * @param {*} defaultValue
    */
-  get(name, defaultValue) {
+  get(name: string, defaultValue?: any) {
     if (this.store) {
       return this.store.get(name, defaultValue);
     } else {
@@ -51,9 +52,9 @@ class MainFileStore {
    * Remove the given name from the store
    * @param {string} name
    */
-  remove(name) {
+  remove(name: string) {
     if (this.store) {
-      this.store.remove(name);
+      this.store.reset(name);
     } else {
       throw new Error("FileStore has not been initialized yet!");
     }

@@ -87,7 +87,55 @@
   "syncing_domains_message": "The genie is fetching your domains",
   "syncing_domains_message_two": "Please do not close the window or your wish may not be granted",
   "no_domains": "No domains came back for {registrar}",
-
+  "overview": "Overview",
+  "domain_overview": "Domain Overview",
+  "domain_overview_description": "More insights and metrics coming soon",
+  "auto_renew": "Auto Renew",
+  "yes": "Yes",
+  "no": "No",
+  "delete": "Delete",
+  "click_to_enable": "Click to enable",
+  "click_to_disable": "Click to disable",
+  "domain_contacts": "Domain Contacts",
+  "domain_contacts_description": "Edit the registrant, billing, admin and tech contacts",
+  "registrant": "Registrant",
+  "admin": "Admin",
+  "billing": "Billing",
+  "tech": "Tech",
+  "working": "Working",
+  "address_one": "Address One",
+  "address_two": "Address Two",
+  "city": "City",
+  "state": "State",
+  "country": "Country",
+  "first_name": "First Name",
+  "last_name": "Last Name",
+  "registrant_matches_all": "Use this for all contact types",
+  "zip": "Zip",
+  "email": "Email",
+  "phone": "Phone",
+  "by_status": "By Status",
+  "only_with_privacy": "Has privacy",
+  "without_privacy": "Without privacy",
+  "only_with_auto_renew": "Has auto renew",
+  "without_auto_renew": "Without auto renew",
+  "first_name_required": "First name is required",
+  "last_name_required": "Last name is required",
+  "email_required": "Email is required",
+  "email_invalid": "Email is invalid",
+  "address_one_required": "Address one is required",
+  "city_required": "City is required",
+  "state_required": "State is required",
+  "country_required": "Country is required",
+  "country_invalid": "Country must be two character country code",
+  "phone_required": "Phone is required",
+  "zip_required": "Zip code is required",
+  "all_done": "All done!",
+  "bulk_editing": "You are bulk editing {totalDomains} domains",
+  "bulk_name_servers": "Bulk Name Servers",
+  "bulk_contacts": "Bulk Contacts",
+  "contacts_all": "Contacts (All Types)",
+  "phone_invalid": "Phone must be in format of +xx.xxxxxx",
   "domains_route": {
     "please_wait": "Please wait, this could take several minutes",
     "sync_error_heading": "Error Synchronizing Domains",
@@ -104,7 +152,6 @@
     "total_domains_text": "{totalDomains} domains",
     "checked_domains": "With {checkedDomains} selected"
   },
-
   "registrars_route": {
     "security_message_one": "Your registrar settings are only stored locally, and are securely encrypted using the",
     "security_message_two": "encryption algorithm.",
@@ -124,7 +171,6 @@
     "all_rejected_message": "All registrar API keys have failed. Please check them and try again.",
     "rejected_removal_message": "Your registrar account may have IP access restrictions"
   },
-
   "notifications": {
     "checking_registrars_title": "Checking Registrars",
     "checking_registrars_message": "The genie is working hard to grant you your wish",
@@ -138,6 +184,8 @@
     "sync_domains_completed_updated": "{domainsUpdated} domains updated from {registrar}",
     "sync_domains_rejected_registrar": "{registrar} failed to import",
     "sync_domains_in_progress": "Currently fetching your domains, please wait",
-    "update_domains_in_progress": "The genie is updating your domains"
+    "update_domains_in_progress": "The genie is updating your domains",
+    "removed_domains": "Removed {totalRemoved} domains",
+    "update_domains_error": "Error communicating with {registrar}"
   }
 }

@@ -3,4 +3,5 @@ export interface UpdateDomainsPartial {
   isValid: boolean;
   totalProcessed: number;
   progress: number;
+  registrar: string;
 }

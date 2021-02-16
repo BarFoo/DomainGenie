@@ -1,6 +1,7 @@
 export interface ElectronApi {
-  send(channel, ...args);
+  send(channel: string, ...args);
   invoke<TResponse>(channel, ...args): Promise<TResponse>;
-  receive(channel, callback: Function);
-  openExternalLink(href, options?);
+  receive(channel: string, callback: Function);
+  openExternalLink(href: string, options?);
+  stopListening(channel: string);
 }

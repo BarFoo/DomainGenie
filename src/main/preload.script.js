@@ -1,4 +1,4 @@
-import { contextBridge, ipcRenderer, shell } from "electron";
+const { contextBridge, ipcRenderer, shell } = require("electron");
 
 /**
  * This context bridge safely exposes various operations on the backend
@@ -38,6 +38,9 @@ contextBridge.exposeInMainWorld("electronApi", {
       // Deliberately strip event as it includes `sender`
       ipcRenderer.on(channel, (event, ...args) => func(...args));
     }
+  },
+  stopListening: (channel) => {
+    ipcRenderer.removeAllListeners(channel);
   },
   openExternalLink: (href, options) => {
     shell.openExternal(href, options);

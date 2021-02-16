@@ -34,7 +34,6 @@
           </div>
         </div>
   </div>
-  <div class="flyout-backdrop" on:click|self={() => isShowing = false}></div>
 {/if}
 
 <style>
@@ -51,20 +50,5 @@
   .flyout-menu.down {
     bottom: -0.75rem;
   }
-  .flyout-backdrop {
-    /* Z index of this must be lower than the flyout menu, but higher than everything else on the page */
-    background: rgba(125, 125, 125, 0.1);
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    z-index: 50;
-  }
 
-  @media (prefers-color-scheme: dark) {
-    .flyout-backdrop {
-      background: rgba(180, 180, 180, 0.2);
-    }
-  }
 </style>

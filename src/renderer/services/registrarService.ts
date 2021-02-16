@@ -22,8 +22,8 @@ export default class RegistrarService {
     window.electronApi.send("getAllDomains");
   }
 
-  updateDomains(domains: Domain[], operationName: string) {
+  updateDomains(domains: Domain[], data: any) {
     isUpdatingDomains.set(true);
-    window.electronApi.send("updateDomains", domains, operationName);
+    window.electronApi.send("updateDomains", domains, data);
   }
 }

@@ -1,8 +1,6 @@
 import { ipcMain } from "electron";
 import { mainFileStore } from "../mainFileStore";
 
-const log = require("electron-log");
-
 /**
  * Registers ipc handlers for the file store. Use these instead of using store directly in renderer!
  */
