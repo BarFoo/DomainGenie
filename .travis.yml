@@ -24,7 +24,7 @@ deploy:
   overwrite: true
   skip_cleanup: true
   on:
-    branches: master
+    branch: master
 
 before_cache:
   - rm -rf $HOME/.cache/electron-builder/wine
