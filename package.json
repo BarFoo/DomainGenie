@@ -7,7 +7,7 @@
   "description": "Free and open source cross platform desktop app for domain portfolio management",
   "version": "0.1.0",
   "scripts": {
-    "build": "electron-snowpack build && copyfiles -f src/main/**/*.script.js dist/main",
+    "build": "electron-snowpack build",
     "clean": "electron-snowpack clean",
     "dev": "electron-snowpack dev",
     "dist": "electron-builder"
