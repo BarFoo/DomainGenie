@@ -1,7 +1,15 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { _ } from "svelte-i18n";
-  import { useForm, Validators, Hint, HintGroup } from "svelte-use-form";
+  import {
+    useForm,
+    Hint,
+    required,
+    email,
+    minLength,
+    maxLength,
+    HintGroup,
+  } from "svelte-use-form";
   import type { Contact } from "../interfaces/contact";
   import ContactFormItem from "./ContactFormItem.svelte";
   import TextField from "./TextField.svelte";
@@ -16,15 +24,15 @@
   }
 
   export let form = useForm({
-    firstName: { validators: [Validators.required]},
-    lastName: { validators: [Validators.required]},
-    email: { validators: [Validators.required, Validators.email]},
-    addressLineOne: { validators: [Validators.required]},
-    city: { validators: [Validators.required]},
-    state: { validators: [Validators.required]},
-    postalCode: { validators: [Validators.required]},
-    country: { validators: [Validators.required, Validators.minLength(2), Validators.maxLength(2)]},
-    phone: { validators: [Validators.required, validatePhone]}
+    firstName: { validators: [required] },
+    lastName: { validators: [required] },
+    email: { validators: [required, email] },
+    addressLineOne: { validators: [required] },
+    city: { validators: [required] },
+    state: { validators: [required] },
+    postalCode: { validators: [required] },
+    country: { validators: [required, minLength(2), maxLength(2)] },
+    phone: { validators: [required, validatePhone] },
   });
 
   let firstNameField;
@@ -32,23 +40,31 @@
   onMount(() => {
     // Without a timeout the sliding transition does NOT work when trying to use autofocus at the same time
     setTimeout(() => {
-      if(firstNameField && autoFocusFirst) {
+      if (firstNameField && autoFocusFirst) {
         firstNameField.focus();
       }
     }, 250);
   });
 </script>
 
-<form class="divide-y divide-gray-200" on:submit={(e) => e.preventDefault()} use:form> 
+<form
+  class="divide-y divide-gray-200"
+  on:submit={(e) => e.preventDefault()}
+  use:form
+>
   <div class="flex-grow flex px-5 py-6">
     <h3 class="flex-grow leading-6 font-medium">
-      <slot name="heading"></slot>
+      <slot name="heading" />
     </h3>
-    <slot name="headerRight"></slot>
+    <slot name="headerRight" />
   </div>
   <ContactFormItem>
     <span slot="label">{$_("first_name")}</span>
-    <TextField bind:value={contact.firstName} name="firstName" bind:this={firstNameField} />
+    <TextField
+      bind:value={contact.firstName}
+      name="firstName"
+      bind:this={firstNameField}
+    />
     <Hint name="firstName" on="required">
       {$_("first_name_required")}
     </Hint>
@@ -110,12 +126,15 @@
     </HintGroup>
   </ContactFormItem>
   <ContactFormItem>
-    <span slot="label">{$_("phone")} <span class="block text-sm text-gray-300">+44.123456</span></span>
+    <span slot="label"
+      >{$_("phone")}
+      <span class="block text-sm text-gray-300">+44.123456</span></span
+    >
     <TextField bind:value={contact.phone} name="phone" />
     <HintGroup name="phone">
       <Hint on="required">{$_("phone_required")}</Hint>
       <Hint hideWhenRequired>{$_("phone_invalid")}</Hint>
     </HintGroup>
   </ContactFormItem>
-  <slot></slot>
+  <slot />
 </form>
